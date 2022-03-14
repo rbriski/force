@@ -1,6 +1,5 @@
 import os
 from pyairtable import Table
-from pprint import pprint
 
 api_key = os.environ["AT_API_KEY"]
 
