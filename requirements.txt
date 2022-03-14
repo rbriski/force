@@ -1,0 +1,4 @@
+flask
+pyairtable
+python-dotenv
+arrow
