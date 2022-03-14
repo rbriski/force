@@ -4,10 +4,26 @@ import arrow
 import at_db as db
 import functools
 import locale
+import math
 import os
 
 locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
 app = Flask(__name__)
+
+
+def round_decimals_up(number: float, decimals: int = 2):
+    """
+    Returns a value rounded up to a specific number of decimal places.
+    """
+    if not isinstance(decimals, int):
+        raise TypeError("decimal places must be an integer")
+    elif decimals < 0:
+        raise ValueError("decimal places has to be 0 or more")
+    elif decimals == 0:
+        return math.ceil(number)
+
+    factor = 10**decimals
+    return math.ceil(number * factor) / factor
 
 
 @app.template_filter()
@@ -38,10 +54,11 @@ def player_ledger(rec_id=None):
     ledger = db.get_ledger(expenses, payments)
 
     total = functools.reduce(lambda a, b: a + b["amount"], ledger, 0)
+    total = round_decimals_up(total)
 
     return render_template(
         "ledger.html",
         player=player["fields"]["Name"],
         total=total,
-        ledger=sorted(ledger, key=lambda i: i["created_at"]),
+        ledger=sorted(ledger, key=lambda i: i["created_at"], reverse=True),
     )

@@ -51,4 +51,5 @@ def get_ledger(expenses, payments):
 
 if __name__ == "__main__":
     roster = Table(api_key, base_id, tables["roster"])
-    pprint(roster.all())
+    for r in roster.all():
+        print(f"{r['fields']['Name']} : https://deanzaforce.club/{r['id']}")
