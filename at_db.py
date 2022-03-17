@@ -31,10 +31,12 @@ def get_payments(rec_id):
 def get_ledger(expenses, payments):
     ledger = []
     for e in expenses:
+        evt = e["fields"].get("Event (from Event)")
+        evt_name = evt and ", ".join(e["fields"].get("Event (from Event)")) or None
         it = {
             "amount": e["fields"]["Cost Per Person"] * -1,
             "description": e["fields"]["Description"],
-            "event": ", ".join(e["fields"]["Event (from Event)"]),
+            "event": evt_name,
             "created_at": e["createdTime"],
         }
         ledger.append(it)
