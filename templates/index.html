@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+
+<div class="p-5 mb-4 bg-light border rounded-3">
+    <div class="container-fluid py-5">
+        <h1 class="display-5 fw-bold">De Anza Force Ledger</h1>
+        <p class="col-md-8 fs-4">
+            A good way to view the total charges for the club, your historical payments, and how to settle any
+            outstanding balances.
+        </p>
+        <a href="{{ login_url }}" class="btn btn-primary btn-lg" role="button">Log in with PayPal</a>
+    </div>
+</div>
+
+{% endblock %}
