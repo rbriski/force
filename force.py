@@ -75,8 +75,3 @@ def player_ledger(rec_id=None):
         total=total,
         ledger=sorted(ledger, key=lambda i: i["created_at"], reverse=True),
     )
-
-
-@app.route("/debug-sentry")
-def trigger_error():
-    division_by_zero = 1 / 0
