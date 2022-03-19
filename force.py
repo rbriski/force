@@ -1,5 +1,5 @@
 from flask import Flask
-from flask import render_template
+from flask import render_template, abort
 import arrow
 import at_db as db
 import functools
@@ -61,7 +61,21 @@ def humanize(date):
 
 @app.route("/<rec_id>")
 def player_ledger(rec_id=None):
+    # Home page is a 404
+    if rec_id is None:
+        abort(404)
+
+    # Anything that doesn't look like a player record
+    # is a 404
+    if not rec_id.startswith("rec"):
+        abort(404)
+
     player = db.get_roster_record(rec_id)
+
+    # No matching player is a 404
+    if not player:
+        abort(404)
+
     expenses = db.get_expenses(player["id"])
     payments = db.get_payments(player["id"])
     ledger = db.get_ledger(expenses, payments)
