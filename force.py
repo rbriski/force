@@ -6,6 +6,19 @@ import functools
 import locale
 import math
 import os
+import sentry_sdk
+from sentry_sdk.integrations.flask import FlaskIntegration
+
+# Returns None on no value, which is what I want
+sentry_dsn = os.environ.get("SENTRY_DSN")
+sentry_sdk.init(
+    dsn=sentry_dsn,
+    integrations=[FlaskIntegration()],
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    # We recommend adjusting this value in production.
+    traces_sample_rate=1.0,
+)
 
 locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
 app = Flask(__name__)
@@ -62,3 +75,8 @@ def player_ledger(rec_id=None):
         total=total,
         ledger=sorted(ledger, key=lambda i: i["created_at"], reverse=True),
     )
+
+
+@app.route("/debug-sentry")
+def trigger_error():
+    division_by_zero = 1 / 0
