@@ -1,7 +1,9 @@
 flask
+flask-session
 requests
 pyairtable
 python-dotenv
 arrow
 gunicorn
 sentry-sdk[flask]
+redis

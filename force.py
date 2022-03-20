@@ -1,5 +1,6 @@
 from flask import Flask
-from flask import render_template, abort, request, redirect, url_for
+from flask import render_template, abort, request, redirect, url_for, session
+from flask_session import Session
 import arrow
 import at_db as db
 import functools
@@ -26,6 +27,11 @@ sentry_sdk.init(
 
 locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
 app = Flask(__name__)
+
+# Set up sessions
+SESSION_TYPE = "redis"
+app.config.from_object(__name__)
+Session(app)
 
 
 def round_decimals_up(number: float, decimals: int = 2):
@@ -87,31 +93,45 @@ def auth():
     code = args.get("code", default=None, type=str)
 
     if code is None:
-        redirect(url_for("index"), code=302)
+        return redirect(url_for("index"), code=302)
 
     client_id = os.environ["PAYPAL_CLIENT_ID"]
     secret = os.environ["PAYPAL_SECRET"]
     r = requests.post(
-        os.environ["PAYPAL_AUTH_ENDPOINT"],
+        os.path.join(os.environ["PAYPAL_API_BASE"], "v1/oauth2/token"),
         data={"grant_type": "authorization_code", "code": code},
         auth=HTTPBasicAuth(client_id, secret),
     )
 
-    pprint(r.json())
+    auth_package = r.json()
+    session["access_token"] = auth_package["access_token"]
+    session["refresh_token"] = auth_package["refresh_token"]
+
+    r = requests.get(
+        os.path.join(os.environ["PAYPAL_API_BASE"], "v1/identity/oauth2/userinfo"),
+        params={"schema": "paypalv1.1"},
+        headers={
+            "Authorization": f"Bearer {session['access_token']}",
+            "Content-Type": "application/json",
+        },
+    )
+
+    user_info = r.json()
+    emails = [e["value"] for e in user_info["emails"]]
+    session["emails"] = emails
+
+    return redirect(url_for("player_ledger"), code=302)
 
 
-@app.route("/<rec_id>")
-def player_ledger(rec_id=None):
-    # Home page is a 404
-    if rec_id is None:
-        abort(404)
+@app.route("/ledger")
+def player_ledger():
+    emails = session["emails"]
+    if emails is None:
+        return redirect(url_for("index"), code=302)
 
-    # Anything that doesn't look like a player record
-    # is a 404
-    if not rec_id.startswith("rec"):
-        abort(404)
+    emails = [e.casefold() for e in emails]
 
-    player = db.get_roster_record(rec_id)
+    player = db.get_roster_record(emails)
 
     # No matching player is a 404
     if not player:

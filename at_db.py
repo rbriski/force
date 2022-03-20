@@ -1,5 +1,6 @@
 import os
 from pyairtable import Table
+from pprint import pprint
 
 api_key = os.environ["AT_API_KEY"]
 
@@ -11,11 +12,14 @@ tables = {
 }
 
 
-def get_roster_record(name):
+def get_roster_record(emails):
     roster = Table(api_key, base_id, tables["roster"])
     for r in roster.all():
-        if r["id"] == name:
+        if "Email" in r["fields"] and r["fields"]["Email"].casefold() in emails:
             return r
+        for e in r["fields"]["Parents Email"]:
+            if e.casefold() in emails:
+                return r
 
 
 def get_expenses(rec_id):
@@ -53,4 +57,5 @@ def get_ledger(expenses, payments):
 if __name__ == "__main__":
     roster = Table(api_key, base_id, tables["roster"])
     for r in roster.all():
-        print(f"{r['fields']['Name']} : https://deanzaforce.club/{r['id']}")
+        pprint(r)
+        # print(f"{r['fields']['Name']} : https://deanzaforce.club/{r['id']}")
