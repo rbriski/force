@@ -38,7 +38,11 @@
                     <h5 class="mb-1">{{ it['amount']|currency }}</h5>
                     <small>{{ it['created_at'] | humanize }}</small>
                 </div>
+                {% if it['event'] %}
+                <p class="mb-1">{{ it['event'] }} : {{ it['description'] }}</p>
+                {% else %}
                 <p class="mb-1">{{ it['description'] }}</p>
+                {% endif %}
                 </li>
                 {% endif %}
                 {% if it['amount'] > 0 %}
