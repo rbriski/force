@@ -1,2 +1,0 @@
-# force
-Deanza Force Ledger

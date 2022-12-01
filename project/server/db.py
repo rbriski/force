@@ -1,4 +1,5 @@
 import os
+
 from pyairtable import Table
 
 api_key = os.environ["AT_API_KEY"]
@@ -12,10 +13,10 @@ tables = {
 
 
 def get_roster_record(name):
-    roster = Table(api_key, base_id, tables["roster"])
-    for r in roster.all():
-        if r["id"] == name:
-            return r
+    roster_record: Table = Table(api_key, base_id, tables["roster"])
+    for rec in roster_record.all():
+        if rec["id"] == name:
+            return rec
 
 
 def get_expenses(rec_id):
@@ -47,6 +48,13 @@ def get_ledger(expenses, payments):
             "created_at": p["createdTime"],
         }
         ledger.append(it)
+
+    ledger = sorted(ledger, key=lambda i: i["created_at"])
+    balance = 0
+    for it in ledger:
+        balance += it["amount"]
+        it["balance"] = balance
+
     return ledger
 
 

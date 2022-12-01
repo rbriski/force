@@ -1,6 +1,0 @@
-flask
-pyairtable
-python-dotenv
-arrow
-gunicorn
-sentry-sdk[flask]
