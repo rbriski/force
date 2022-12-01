@@ -1,0 +1,140 @@
+{% extends "_base.html" %}
+{% block content %}
+
+<div
+    class="mx-auto mt-10 max-w-4xl px-4 py-4 md:py-8 sm:mt-12 sm:px-6 md:mt-16 lg:mt-20 lg:px-8 xl:mt-28 bg-slate-100 rounded-md">
+    <div class="text-center">
+        <h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl md:text-6xl">
+            <span class="block xl:inline">Balance: {{ total | round_currency_up | currency }}</span>
+        </h1>
+        {% if total < 0 %} <div class="mt-5 sm:mt-8 justify-center">
+
+            <div class="rounded-md shadow">
+                <a href="https://www.paypal.com/paypalme/Force2010G/{{ total  | round_currency_up | abs }}"
+                    class="flex w-full items-center justify-center rounded-md border border-transparent bg-indigo-600 px-8 py-3 text-base font-medium text-white hover:bg-indigo-700 md:py-4 md:px-10 md:text-lg">Pay
+                </a>
+            </div>
+    </div>{% endif %}
+</div>
+</div>
+
+<div class="mx-auto mt-2 max-w-4xl px-4 py-4 sm:mt-4 sm:px-6 md:mt-6 lg:mt-8 lg:px-8 xl:mt-10 bg-slate-100 rounded-md">
+    <ul class="divide-y divide-gray-200">
+        <li>
+            <div class="flex items-center space-x-4">
+                <div class="flex-1 min-w-0">
+                    <div class="flex">
+                        <p class="text-sm font-medium text-gray-900 truncate">
+                            Description
+                        </p>
+                    </div>
+                    <p class="text-sm text-gray-500 truncate">
+                        Event Name
+                    </p>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="font-semibold text-base text-gray-900 text-right">
+                        Amount
+                    </p>
+                    <p class="text-sm text-gray-400 text-right">
+                        Running Balance
+                    </p>
+                </div>
+            </div>
+        </li>
+    </ul>
+</div>
+
+<div class="mx-auto mt-2 max-w-4xl px-4 py-4 sm:mt-4 sm:px-6 md:mt-6 lg:mt-8 lg:px-8 xl:mt-10 bg-slate-100 rounded-md">
+    <ul class="divide-y divide-gray-200">
+        {% for it in ledger %}
+        <li class="pb-3 sm:pb-4">
+            <div class="flex items-center space-x-4">
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900 truncate">
+                        {{ it['description'] }}
+                    </p>
+                    {% if it['amount'] > 0 %}
+                    <p class="text-sm text-gray-50 bg-green-700 max-w-fit rounded-md mt-1 px-2">
+                        Credit
+                    </p>
+                    {% else %}
+                    <p class="text-sm text-gray-500 truncate">
+                        {% if it['event'] %}{{ it['event'] }}{% endif %}
+                    </p>
+                    {% endif %}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="font-semibold text-base text-gray-900 text-right">
+                        {{ it['amount'] | round_currency_up | currency }}
+                    </p>
+                    <p class="text-sm text-gray-400 text-right">
+                        {{ it['balance'] | round_currency_up | currency }}
+                    </p>
+                </div>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+<!-- {% for it in ledger %}
+<tbody>
+    <tr>
+        <td class="bg-slate-100 border-b p-4 pl-8">{{ it['created_at'] | format_dt }}</td>
+        <td class="bg-slate-100 border-b p-4 pl-8 text-green-700">
+            {% if it['amount'] > 0 %}
+            Credit
+            {% endif %}
+        </td>
+        {% if it['event'] %}
+        <td class="bg-slate-100 border-b p-4 pl-8">{{ it['event'] }} : {{ it['description'] }}</td>
+        {% else %}
+        <td class="bg-slate-100 border-b p-4 pl-8">{{ it['description'] }}</td>
+        {% endif %}
+        <td class="bg-slate-100 border-b p-4 pl-8 text-right">{{ it['amount'] | round_currency_up | currency }}
+        </td>
+        <td class="bg-slate-200 border-b p-4 pl-8 text-right">{{ it['balance'] | round_currency_up
+            | currency }}
+        </td>
+    </tr>
+</tbody>
+{% endfor %} -->
+
+<!-- <div class="flex">
+    <table class="border-collapse table-auto w-full text-sm">
+        <tbody>
+            <tr>
+                <td class="border-b font-medium p-4 pr-8 pt-0 pb-3 text-left">Created</td>
+                <td class="border-b font-medium p-4 pr-8 pt-0 pb-3 text-left"></td>
+                <td class="border-b font-medium p-4 pr-8 pt-0 pb-3 text-left">Description</td>
+                <td class="border-b font-medium p-4 pr-8 pt-0 pb-3 text-left">Amount</td>
+                <td class="border-b font-medium p-4 pr-8 pt-0 pb-3 text-left">Balance</td>
+            </tr>
+        </tbody>
+        {% for it in ledger %}
+        <tbody>
+            <tr>
+                <td class   ="bg-slate-100 border-b p-4 pl-8">{{ it['created_at'] | format_dt }}</td>
+                <td class="bg-slate-100 border-b p-4 pl-8 text-green-700">
+                    {% if it['amount'] > 0 %}
+                    Credit
+                    {% endif %}
+                </td>
+                {% if it['event'] %}
+                <td class="bg-slate-100 border-b p-4 pl-8">{{ it['event'] }} : {{ it['description'] }}</td>
+                {% else %}
+                <td class="bg-slate-100 border-b p-4 pl-8">{{ it['description'] }}</td>
+                {% endif %}
+                <td class="bg-slate-100 border-b p-4 pl-8 text-right">{{ it['amount'] | round_currency_up | currency }}
+                </td>
+                <td class="bg-slate-200 border-b p-4 pl-8 text-right">{{ it['balance'] | round_currency_up
+                    | currency }}
+                </td>
+            </tr>
+        </tbody>
+        {% endfor %}
+    </table>
+</div> -->
+
+
+{% endblock %}

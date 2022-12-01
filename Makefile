@@ -1,6 +1,6 @@
 deploy:
-	ssh ${LINODE_CONN} "cd ~/force; git pull && git rebase"
-	ssh ${LINODE_CONN} "cd ~/force; source bin/activate; pip install -r requirements.txt"
+	ssh ${LINODE_CONN} "cd ~/f; git pull && git rebase"
+	ssh ${LINODE_CONN} "cd ~/f; source bin/activate; pip install -r requirements.txt"
 	ssh ${LINODE_CONN} "systemctl restart force"
 
 ssl:
