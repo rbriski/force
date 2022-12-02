@@ -1,6 +1,6 @@
 deploy:
-	ssh ${LINODE_CONN} "cd ~/f; git pull && git rebase"
-	ssh ${LINODE_CONN} "cd ~/f; poetry install"
+	ssh ${LINODE_CONN} "cd ~/force; git pull && git rebase"
+	ssh ${LINODE_CONN} "cd ~/force; /root/.local/bin/poetry install"
 	ssh ${LINODE_CONN} "systemctl restart force"
 
 ssl:
