@@ -3,7 +3,7 @@ import functools
 
 from flask import Blueprint, abort, render_template
 
-from project.server import db
+from project.server import at as db
 
 user_blueprint = Blueprint("user", __name__)
 

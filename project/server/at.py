@@ -9,6 +9,7 @@ tables = {
     "roster": os.environ["AT_ROSTER"],
     "expenses": os.environ["AT_EXPENSES"],
     "payments": os.environ["AT_PAYMENTS"],
+    "parents": os.environ["AT_PARENTS"],
 }
 
 
