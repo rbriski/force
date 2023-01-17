@@ -1,7 +1,9 @@
 # manage.py
+import logging
 import subprocess
 import sys
 import unittest
+from datetime import datetime
 from pprint import pprint
 
 from dotenv import load_dotenv
@@ -9,7 +11,11 @@ from flask.cli import FlaskGroup
 from pyairtable import Table
 
 from project.server import at, create_app, db
-from project.server.models import Person
+from project.server.models import Event, Expense, Payment, Person
+
+# logging.basicConfig()
+# logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
+
 
 load_dotenv()
 app = create_app()
@@ -41,16 +47,130 @@ def flake():
 
 
 @cli.command()
-def expenses():
-    expenses = Table(at.api_key, at.base_id, at.tables["parents"])
-    for e in expenses.all():
-        f = e["fields"]
-        p = Person(
-            at_id=e["id"], name=f["Name"], email=f.get("Email"), phone=f.get("Phone")
-        )
-        db.session.add(p)
-        pprint(e)
+def reflect():
+    # parents = Table(at.api_key, at.base_id, at.tables["parents"])
+    # for p in parents.all():
+    #     f = p["fields"]
+    #     person = Person(
+    #         at_id=p["id"], name=f["Name"], email=f.get("Email"), phone=f.get("Phone")
+    #     )
+    #     db.session.add(person)
+    # db.session.commit()
+
+    roster = Table(at.api_key, at.base_id, at.tables["roster"])
+    for r in roster.all():
+        if "Parents" in r["fields"]:
+            player = Person.query.filter_by(at_id=r["id"]).one()
+            pprint(player.name)
+            parents = Person.query.where(Person.at_id.in_(r["fields"]["Parents"])).all()
+            for parent in parents:
+                player.parents.append(parent)
+                print("--" + parent.name)
+
+        # f = r["fields"]
+        # roster = Person(
+        #     at_id=r["id"], name=f["Name"], email=f.get("Email"), phone=f.get("Phone")
+        # )
+
     db.session.commit()
+
+
+@cli.command()
+def events():
+    events = Table(at.api_key, at.base_id, at.tables["events"])
+    for p in events.all():
+        f = p["fields"]
+        pprint(f)
+        f_dt = f.get("Date")
+        dt = None
+        if f_dt:
+            dt = datetime.strptime(f.get("Date"), "%Y-%m-%d")
+        existing = Event.query.filter_by(at_id=p["id"]).one()
+        evt = Event(at_id=p["id"], name=f.get("Event"), date=dt)
+        if not existing:
+            db.session.add(evt)
+    db.session.commit()
+
+
+@cli.command()
+def expenses():
+    expenses = Table(at.api_key, at.base_id, at.tables["expenses"])
+    for p in expenses.all():
+        f = p["fields"]
+        event = None
+        if "Event" in f:
+            evt_id = f["Event"][0]
+            event = Event.query.filter_by(at_id=evt_id).one()
+        pprint(p)
+        dt = datetime.strptime(p["createdTime"], "%Y-%m-%dT%H:%M:%S.000Z")
+        person = Expense(
+            at_id=p["id"],
+            created_at=dt,
+            amount=f["Amount"],
+            description=f["Description"],
+        )
+        person.event = event
+        db.session.add(person)
+
+    db.session.commit()
+
+
+@cli.command()
+def payments():
+    payments = Table(at.api_key, at.base_id, at.tables["payments"])
+    for p in payments.all():
+        f = p["fields"]
+        dt = datetime.strptime(p["createdTime"], "%Y-%m-%dT%H:%M:%S.000Z")
+        payment = Payment(
+            at_id=p["id"],
+            created_at=dt,
+            amount=f["Amount"],
+            description=f["Description"],
+        )
+        db.session.add(payment)
+
+    db.session.commit()
+
+
+@cli.command()
+def ppayments():
+    roster = Table(at.api_key, at.base_id, at.tables["roster"])
+    for r in roster.all():
+        if "Payments" in r["fields"]:
+            player = Person.query.filter_by(at_id=r["id"]).one()
+            pprint(player.name)
+            payments = Payment.query.where(
+                Payment.at_id.in_(r["fields"]["Payments"])
+            ).all()
+            for payment in payments:
+                player.payments.append(payment)
+                print("--" + payment.description)
+
+    db.session.commit()
+
+
+@cli.command()
+def pexpenses():
+    roster = Table(at.api_key, at.base_id, at.tables["roster"])
+    for r in roster.all():
+        if "Expenses" in r["fields"]:
+            player = Person.query.filter_by(at_id=r["id"]).one()
+            pprint(player.name)
+            expenses = Expense.query.where(
+                Expense.at_id.in_(r["fields"]["Expenses"])
+            ).all()
+            for expense in expenses:
+                player.expenses.append(expense)
+                print("--" + expense.description)
+
+    db.session.commit()
+
+
+@cli.command()
+def output():
+    for e in Expense.query.all():
+        for p in e.players:
+            print(f"{p.name} -- {e.per_person()} of {e.amount}")
 
 
 if __name__ == "__main__":

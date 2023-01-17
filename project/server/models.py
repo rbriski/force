@@ -30,6 +30,20 @@ class PlayerParent(Base):
     parent_id = db.Column("parent_id", db.ForeignKey("people.id"), primary_key=True)
 
 
+class PlayerExpenses(Base):
+    __tablename__ = "m_people_expenses"
+
+    people_id = db.Column("people_id", db.ForeignKey("people.id"), primary_key=True)
+    expense_id = db.Column("expense_id", db.ForeignKey("expenses.id"), primary_key=True)
+
+
+class PlayerPayments(Base):
+    __tablename__ = "m_people_payments"
+
+    people_id = db.Column("people_id", db.ForeignKey("people.id"), primary_key=True)
+    payment_id = db.Column("payment_id", db.ForeignKey("payments.id"), primary_key=True)
+
+
 class Person(Base):
     __tablename__ = "people"
 
@@ -46,6 +60,56 @@ class Person(Base):
         secondaryjoin="Person.id == m_player_parent.c.parent_id",
         backref="players",
     )
+
+    expenses = db.relationship(
+        "Expense",
+        secondary="m_people_expenses",
+        primaryjoin="Person.id == m_people_expenses.c.people_id",
+        secondaryjoin="Expense.id == m_people_expenses.c.expense_id",
+        backref="players",
+    )
+
+    payments = db.relationship(
+        "Payment",
+        secondary="m_people_payments",
+        primaryjoin="Person.id == m_people_payments.c.people_id",
+        secondaryjoin="Payment.id == m_people_payments.c.payment_id",
+        backref="players",
+    )
+
+
+class Expense(Base):
+    __tablename__ = "expenses"
+
+    at_id = db.Column(db.VARCHAR)
+    event_id = db.Column(db.VARCHAR)
+    amount = db.Column(db.FLOAT)
+    description = db.Column(db.VARCHAR)
+
+    event_id = db.Column("event_id", db.ForeignKey("events.id"), primary_key=True)
+    event = db.relationship("Event", back_populates="expenses")
+
+    def per_person(self):
+        return self.amount / len(self.players)
+
+
+class Event(Base):
+    __tablename__ = "events"
+
+    at_id = db.Column(db.VARCHAR)
+    name = db.Column(db.VARCHAR)
+    date = db.Column(db.DATE)
+    description = db.Column(db.VARCHAR)
+
+    expenses = db.relationship("Expense", back_populates="event")
+
+
+class Payment(Base):
+    __tablename__ = "payments"
+
+    at_id = db.Column(db.VARCHAR)
+    amount = db.Column(db.FLOAT)
+    description = db.Column(db.VARCHAR)
 
 
 #     email = db.Column(db.String(255), unique=True, nullable=False)
