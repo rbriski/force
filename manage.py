@@ -11,7 +11,7 @@ from flask.cli import FlaskGroup
 from pyairtable import Table
 
 from project.server import at, create_app, db
-from project.server.models import Event, Expense, Payment, Person
+from project.server.models import Event, Person, Transaction
 
 # logging.basicConfig()
 # logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
@@ -103,14 +103,15 @@ def expenses():
             event = Event.query.filter_by(at_id=evt_id).one()
         pprint(p)
         dt = datetime.strptime(p["createdTime"], "%Y-%m-%dT%H:%M:%S.000Z")
-        person = Expense(
+        expense = Transaction(
             at_id=p["id"],
             created_at=dt,
             amount=f["Amount"],
             description=f["Description"],
+            debit=True,
         )
-        person.event = event
-        db.session.add(person)
+        expense.event = event
+        db.session.add(expense)
 
     db.session.commit()
 
@@ -121,11 +122,12 @@ def payments():
     for p in payments.all():
         f = p["fields"]
         dt = datetime.strptime(p["createdTime"], "%Y-%m-%dT%H:%M:%S.000Z")
-        payment = Payment(
+        payment = Transaction(
             at_id=p["id"],
             created_at=dt,
             amount=f["Amount"],
             description=f["Description"],
+            debit=False,
         )
         db.session.add(payment)
 
@@ -139,11 +141,11 @@ def ppayments():
         if "Payments" in r["fields"]:
             player = Person.query.filter_by(at_id=r["id"]).one()
             pprint(player.name)
-            payments = Payment.query.where(
-                Payment.at_id.in_(r["fields"]["Payments"])
+            payments = Transaction.query.where(
+                Transaction.at_id.in_(r["fields"]["Payments"])
             ).all()
             for payment in payments:
-                player.payments.append(payment)
+                player.transactions.append(payment)
                 print("--" + payment.description)
 
     db.session.commit()
@@ -156,11 +158,11 @@ def pexpenses():
         if "Expenses" in r["fields"]:
             player = Person.query.filter_by(at_id=r["id"]).one()
             pprint(player.name)
-            expenses = Expense.query.where(
-                Expense.at_id.in_(r["fields"]["Expenses"])
+            expenses = Transaction.query.where(
+                Transaction.at_id.in_(r["fields"]["Expenses"])
             ).all()
             for expense in expenses:
-                player.expenses.append(expense)
+                player.transactions.append(expense)
                 print("--" + expense.description)
 
     db.session.commit()

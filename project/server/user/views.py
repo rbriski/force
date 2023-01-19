@@ -4,6 +4,7 @@ import functools
 from flask import Blueprint, abort, render_template
 
 from project.server import at as db
+from project.server.models import Event, Person, Transaction
 
 user_blueprint = Blueprint("user", __name__)
 
@@ -15,7 +16,7 @@ def ledger(rec_id=None):
         abort(404)
 
     rec_id = "rec" + rec_id
-    player = db.get_roster_record(rec_id)
+    player = Person.query.filter_by(at_id=rec_id)
 
     # No matching player is a 404
     if not player:

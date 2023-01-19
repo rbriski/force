@@ -30,18 +30,13 @@ class PlayerParent(Base):
     parent_id = db.Column("parent_id", db.ForeignKey("people.id"), primary_key=True)
 
 
-class PlayerExpenses(Base):
-    __tablename__ = "m_people_expenses"
+class PlayerTransactions(Base):
+    __tablename__ = "m_people_transactions"
 
-    people_id = db.Column("people_id", db.ForeignKey("people.id"), primary_key=True)
-    expense_id = db.Column("expense_id", db.ForeignKey("expenses.id"), primary_key=True)
-
-
-class PlayerPayments(Base):
-    __tablename__ = "m_people_payments"
-
-    people_id = db.Column("people_id", db.ForeignKey("people.id"), primary_key=True)
-    payment_id = db.Column("payment_id", db.ForeignKey("payments.id"), primary_key=True)
+    person_id = db.Column("person_id", db.ForeignKey("people.id"), primary_key=True)
+    transaction_id = db.Column(
+        "transaction_id", db.ForeignKey("transactions.id"), primary_key=True
+    )
 
 
 class Person(Base):
@@ -61,36 +56,58 @@ class Person(Base):
         backref="players",
     )
 
+    transactions = db.relationship(
+        "Transaction",
+        secondary="m_people_transactions",
+        primaryjoin="Person.id == m_people_transactions.c.person_id",
+        secondaryjoin="Transaction.id == m_people_transactions.c.transaction_id",
+        back_populates="people",
+        order_by="Transaction.created_at",
+    )
+
     expenses = db.relationship(
-        "Expense",
-        secondary="m_people_expenses",
-        primaryjoin="Person.id == m_people_expenses.c.people_id",
-        secondaryjoin="Expense.id == m_people_expenses.c.expense_id",
-        backref="players",
+        "Transaction",
+        secondary="m_people_transactions",
+        primaryjoin="Person.id == m_people_transactions.c.person_id",
+        secondaryjoin="and_(Transaction.id == m_people_transactions.c.transaction_id, Transaction.debit==1)",  # noqa: E501
+        back_populates="people",
+        order_by="Transaction.created_at",
+        viewonly=True,
     )
 
     payments = db.relationship(
-        "Payment",
-        secondary="m_people_payments",
-        primaryjoin="Person.id == m_people_payments.c.people_id",
-        secondaryjoin="Payment.id == m_people_payments.c.payment_id",
-        backref="players",
+        "Transaction",
+        secondary="m_people_transactions",
+        primaryjoin="Person.id == m_people_transactions.c.person_id",
+        secondaryjoin="and_(Transaction.id == m_people_transactions.c.transaction_id, Transaction.debit==0)",  # noqa: E501
+        back_populates="people",
+        order_by="Transaction.created_at",
+        viewonly=True,
     )
 
 
-class Expense(Base):
-    __tablename__ = "expenses"
+class Transaction(Base):
+    __tablename__ = "transactions"
 
     at_id = db.Column(db.VARCHAR)
     event_id = db.Column(db.VARCHAR)
     amount = db.Column(db.FLOAT)
     description = db.Column(db.VARCHAR)
+    debit = db.Column(db.BOOLEAN)
 
-    event_id = db.Column("event_id", db.ForeignKey("events.id"), primary_key=True)
-    event = db.relationship("Event", back_populates="expenses")
+    event_id = db.Column("event_id", db.ForeignKey("events.id"))
+    event = db.relationship("Event")
+
+    people = db.relationship(
+        "Person",
+        secondary="m_people_transactions",
+        primaryjoin="Transaction.id == m_people_transactions.c.transaction_id",
+        secondaryjoin="Person.id == m_people_transactions.c.person_id",
+        back_populates="transactions",
+    )
 
     def per_person(self):
-        return self.amount / len(self.players)
+        return self.amount / len(self.people)
 
 
 class Event(Base):
@@ -101,15 +118,7 @@ class Event(Base):
     date = db.Column(db.DATE)
     description = db.Column(db.VARCHAR)
 
-    expenses = db.relationship("Expense", back_populates="event")
-
-
-class Payment(Base):
-    __tablename__ = "payments"
-
-    at_id = db.Column(db.VARCHAR)
-    amount = db.Column(db.FLOAT)
-    description = db.Column(db.VARCHAR)
+    transaction = db.relationship("Transaction", back_populates="event")
 
 
 #     email = db.Column(db.String(255), unique=True, nullable=False)
