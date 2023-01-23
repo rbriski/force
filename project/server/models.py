@@ -6,6 +6,7 @@
 # from flask import current_app
 
 import uuid
+from typing import List
 
 from project.server import db
 
@@ -85,6 +86,23 @@ class Person(Base):
         viewonly=True,
     )
 
+    def ledger(self):
+        total = 0
+        ordered_transactions = []
+        for t in self.transactions:
+            total += t.per_person()
+            ot = OrderedTransaction(total=total, transaction=t)
+            ordered_transactions.append(ot)
+
+        return ordered_transactions
+
+    def balance(self):
+        total = 0
+        for t in self.transactions:
+            total += t.per_person()
+
+        return total
+
 
 class Transaction(Base):
     __tablename__ = "transactions"
@@ -119,6 +137,12 @@ class Event(Base):
     description = db.Column(db.VARCHAR)
 
     transaction = db.relationship("Transaction", back_populates="event")
+
+
+class OrderedTransaction:
+    def __init__(self, total: float, transaction: Transaction):
+        self.total = total
+        self.transaction = transaction
 
 
 #     email = db.Column(db.String(255), unique=True, nullable=False)

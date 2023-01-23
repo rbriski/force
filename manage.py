@@ -47,31 +47,50 @@ def flake():
 
 
 @cli.command()
-def reflect():
-    # parents = Table(at.api_key, at.base_id, at.tables["parents"])
-    # for p in parents.all():
-    #     f = p["fields"]
-    #     person = Person(
-    #         at_id=p["id"], name=f["Name"], email=f.get("Email"), phone=f.get("Phone")
-    #     )
-    #     db.session.add(person)
-    # db.session.commit()
+def people():
+    parents = Table(at.api_key, at.base_id, at.tables["parents"])
+    for p in parents.all():
+        f = p["fields"]
+        existing = Person.query.filter_by(at_id=p["id"]).first()
+        if existing:
+            continue
+        person = Person(
+            at_id=p["id"],
+            name=f["Name"],
+            email=f.get("Email"),
+            phone=f.get("Phone"),
+        )
+        db.session.add(person)
+    db.session.commit()
 
+    players = Table(at.api_key, at.base_id, at.tables["roster"])
+    for p in players.all():
+        f = p["fields"]
+        existing = Person.query.filter_by(at_id=p["id"]).first()
+        if existing:
+            continue
+        person = Person(
+            at_id=p["id"],
+            name=f["Name"],
+            email=f.get("Email"),
+            phone=f.get("Phone"),
+        )
+        db.session.add(person)
+    db.session.commit()
+
+
+@cli.command()
+def ppeople():
     roster = Table(at.api_key, at.base_id, at.tables["roster"])
     for r in roster.all():
         if "Parents" in r["fields"]:
-            player = Person.query.filter_by(at_id=r["id"]).one()
+            pprint(r)
+            player = Person.query.filter_by(at_id=r["id"]).first()
             pprint(player.name)
             parents = Person.query.where(Person.at_id.in_(r["fields"]["Parents"])).all()
             for parent in parents:
                 player.parents.append(parent)
                 print("--" + parent.name)
-
-        # f = r["fields"]
-        # roster = Person(
-        #     at_id=r["id"], name=f["Name"], email=f.get("Email"), phone=f.get("Phone")
-        # )
-
     db.session.commit()
 
 
@@ -85,10 +104,11 @@ def events():
         dt = None
         if f_dt:
             dt = datetime.strptime(f.get("Date"), "%Y-%m-%d")
-        existing = Event.query.filter_by(at_id=p["id"]).one()
+        existing = Event.query.filter_by(at_id=p["id"]).first()
+        if existing:
+            continue
         evt = Event(at_id=p["id"], name=f.get("Event"), date=dt)
-        if not existing:
-            db.session.add(evt)
+        db.session.add(evt)
     db.session.commit()
 
 
@@ -106,7 +126,7 @@ def expenses():
         expense = Transaction(
             at_id=p["id"],
             created_at=dt,
-            amount=f["Amount"],
+            amount=f["Amount"] * -1,
             description=f["Description"],
             debit=True,
         )
