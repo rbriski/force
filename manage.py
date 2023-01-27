@@ -23,7 +23,7 @@ cli = FlaskGroup(create_app=create_app)
 
 
 @cli.command()
-def create_db():
+def createdb():
     db.drop_all()
     db.create_all()
     db.session.commit()
@@ -44,6 +44,17 @@ def test():
 def flake():
     """Runs flake8 on the project."""
     subprocess.run(["flake8", "project"])
+
+
+@cli.command()
+def loadall():
+    people()
+    ppeople()
+    events()
+    expenses()
+    payments()
+    ppayments()
+    pexpenses()
 
 
 @cli.command()
@@ -84,7 +95,6 @@ def ppeople():
     roster = Table(at.api_key, at.base_id, at.tables["roster"])
     for r in roster.all():
         if "Parents" in r["fields"]:
-            pprint(r)
             player = Person.query.filter_by(at_id=r["id"]).first()
             pprint(player.name)
             parents = Person.query.where(Person.at_id.in_(r["fields"]["Parents"])).all()
@@ -99,7 +109,6 @@ def events():
     events = Table(at.api_key, at.base_id, at.tables["events"])
     for p in events.all():
         f = p["fields"]
-        pprint(f)
         f_dt = f.get("Date")
         dt = None
         if f_dt:
@@ -121,7 +130,6 @@ def expenses():
         if "Event" in f:
             evt_id = f["Event"][0]
             event = Event.query.filter_by(at_id=evt_id).one()
-        pprint(p)
         dt = datetime.strptime(p["createdTime"], "%Y-%m-%dT%H:%M:%S.000Z")
         expense = Transaction(
             at_id=p["id"],
