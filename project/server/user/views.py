@@ -1,5 +1,4 @@
 # project/server/user/views.py
-from pprint import pprint
 
 from flask import Blueprint, abort, render_template
 

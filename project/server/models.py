@@ -6,7 +6,6 @@
 # from flask import current_app
 
 import uuid
-from typing import List
 
 from project.server import db
 
