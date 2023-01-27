@@ -5,6 +5,11 @@ import os
 
 import arrow
 from flask import Flask, render_template
+from flask_migrate import Migrate
+from flask_sqlalchemy import SQLAlchemy
+
+db = SQLAlchemy()
+migrate = Migrate()
 
 
 def create_app(script_info=None):
@@ -21,6 +26,9 @@ def create_app(script_info=None):
     # set config
     app_settings = os.getenv("APP_SETTINGS", "project.server.config.ProductionConfig")
     app.config.from_object(app_settings)
+
+    db.init_app(app)
+    migrate.init_app(app, db)
 
     # register blueprints
     from project.server.main.views import main_blueprint
@@ -52,7 +60,7 @@ def create_app(script_info=None):
     # shell context for flask cli
     @app.shell_context_processor
     def ctx():
-        return {"app": app}
+        return {"app": app, "db": db}
 
     @app.template_filter()
     def paypal_me(amount):
