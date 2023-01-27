@@ -47,17 +47,6 @@ def flake():
 
 
 @cli.command()
-def loadall():
-    people()
-    ppeople()
-    events()
-    expenses()
-    payments()
-    ppayments()
-    pexpenses()
-
-
-@cli.command()
 def people():
     parents = Table(at.api_key, at.base_id, at.tables["parents"])
     for p in parents.all():
