@@ -119,6 +119,9 @@ def expenses():
             evt_id = f["Event"][0]
             event = Event.query.filter_by(at_id=evt_id).one()
         dt = datetime.strptime(p["createdTime"], "%Y-%m-%dT%H:%M:%S.000Z")
+        existing = Transaction.query.filter_by(at_id=p["id"]).first()
+        if existing:
+            continue
         expense = Transaction(
             at_id=p["id"],
             created_at=dt,
@@ -138,6 +141,9 @@ def payments():
     for p in payments.all():
         f = p["fields"]
         dt = datetime.strptime(p["createdTime"], "%Y-%m-%dT%H:%M:%S.000Z")
+        existing = Transaction.query.filter_by(at_id=p["id"]).first()
+        if existing:
+            continue
         payment = Transaction(
             at_id=p["id"],
             created_at=dt,
@@ -185,10 +191,12 @@ def pexpenses():
 
 
 @cli.command()
-def output():
-    for e in Expense.query.all():
-        for p in e.players:
-            print(f"{p.name} -- {e.per_person()} of {e.amount}")
+def parentemails():
+    for p in Person.query.all():
+        if not p.parents:
+            continue
+        emails = [parent.email for parent in p.parents]
+        print(f"{p.name}\t{ ','.join(emails) }\thttps://deanzaforce.club/{ p.at_id }")
 
 
 if __name__ == "__main__":
