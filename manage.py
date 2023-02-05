@@ -120,6 +120,9 @@ def expenses():
             evt_id = f["Event"][0]
             event = Event.query.filter_by(at_id=evt_id).one()
         dt = datetime.strptime(p["createdTime"], "%Y-%m-%dT%H:%M:%S.000Z")
+        existing = Transaction.query.filter_by(at_id=p["id"]).first()
+        if existing:
+            continue
         expense = Transaction(
             at_id=p["id"],
             created_at=dt,
@@ -139,6 +142,9 @@ def payments():
     for p in payments.all():
         f = p["fields"]
         dt = datetime.strptime(p["createdTime"], "%Y-%m-%dT%H:%M:%S.000Z")
+        existing = Transaction.query.filter_by(at_id=p["id"]).first()
+        if existing:
+            continue
         payment = Transaction(
             at_id=p["id"],
             created_at=dt,
@@ -183,13 +189,6 @@ def pexpenses():
                 print("--" + expense.description)
 
     db.session.commit()
-
-
-@cli.command()
-def output():
-    for e in Expense.query.all():
-        for p in e.players:
-            print(f"{p.name} -- {e.per_person()} of {e.amount}")
 
 
 if __name__ == "__main__":
