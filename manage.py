@@ -191,5 +191,14 @@ def pexpenses():
     db.session.commit()
 
 
+@cli.command()
+def parentemails():
+    for p in Person.query.all():
+        if not p.parents:
+            continue
+        emails = [parent.email for parent in p.parents]
+        print(f"{p.name}\t{ ','.join(emails) }\thttps://deanzaforce.club/{ p.at_id }")
+
+
 if __name__ == "__main__":
     cli()
