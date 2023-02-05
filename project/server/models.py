@@ -1,17 +1,12 @@
 # project/server/models.py
 
 
-# import datetime
-
-# from flask import current_app
-
 import uuid
 
 from project.server import db
 
 
 class Base(db.Model):
-
     __abstract__ = True
 
     id = db.Column(db.CHAR(36), primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -123,8 +118,19 @@ class Transaction(Base):
         back_populates="transactions",
     )
 
+    @classmethod
+    def expenses(klass):
+        return klass.query.filter_by(debit=True)
+
+    @classmethod
+    def payments(klass):
+        return klass.query.filter_by(debit=False)
+
     def per_person(self):
         return self.amount / len(self.people)
+
+    def players(self):
+        return [p for p in self.people if p.parents is not None]
 
 
 class Event(Base):
