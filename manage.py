@@ -1,5 +1,4 @@
 # manage.py
-import logging
 import subprocess
 import sys
 import unittest

@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "watch": "npx tailwindcss -i project/client/style.css -o project/client/static/main.css --watch"
+  },
   "dependencies": {
     "tailwindcss": "^3.2.1"
   }
