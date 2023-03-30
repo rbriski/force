@@ -1,0 +1,24 @@
+{% extends "_base.html" %}
+{% block content %}
+{% if f.amount.errors %}
+<div class="mx-auto mt-2 max-w-4xl px-4 py-4 sm:mt-4 sm:px-6 md:mt-6 lg:mt-8 lg:px-8 xl:mt-10 bg-slate-100 rounded-md">
+    <ul class="errors">
+        {% for error in f.amount.errors %}
+        <li>{{ error }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<div class="mx-auto mt-2 max-w-4xl px-4 py-4 sm:mt-4 sm:px-6 md:mt-6 lg:mt-8 lg:px-8 xl:mt-10 bg-slate-100 rounded-md">
+    <form method="POST" action="/expenses/add">
+        {{ f.hidden_tag() }}
+        {{ f.description.label }} {{ f.description(class="form-input") }}
+        {{ f.amount.label }} {{ f.amount(class="form-input") }}
+        {{ f.debit.label }} {{ f.debit() }}
+        <input type="submit" value="Go">
+    </form>
+</div>
+
+
+{% endblock %}

@@ -7,9 +7,11 @@ import arrow
 from flask import Flask, render_template
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+from turbo_flask import Turbo
 
 db = SQLAlchemy()
 migrate = Migrate()
+turbo = Turbo()
 
 
 def create_app(script_info=None):
@@ -28,6 +30,7 @@ def create_app(script_info=None):
 
     db.init_app(app)
     migrate.init_app(app, db)
+    turbo.init_app(app)
 
     # register blueprints
     from project.server.main.views import main_blueprint
