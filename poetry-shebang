@@ -1,0 +1,8 @@
+#!/bin/bash
+
+SCRIPT="$(realpath "$1")"
+shift
+SCRIPT_FOLDER="$(dirname $SCRIPT)"
+SCRIPT_NAME="$(basename $SCRIPT)"
+
+cd "$SCRIPT_FOLDER" && exec poetry run python "$SCRIPT_NAME" "$@"
