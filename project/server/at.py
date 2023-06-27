@@ -1,6 +1,9 @@
 import os
-
+from dotenv import load_dotenv
 from pyairtable import Table
+
+
+load_dotenv()
 
 api_key = os.environ["AT_API_KEY"]
 
