@@ -10,6 +10,7 @@
 </div>
 {% endif %}
 
+<!-- 
 <div class="mx-auto mt-2 max-w-4xl px-4 py-4 sm:mt-4 sm:px-6 md:mt-6 lg:mt-8 lg:px-8 xl:mt-10 bg-slate-100 rounded-md">
     <form method="POST" action="/expenses/add">
         {{ f.hidden_tag() }}
@@ -19,6 +20,57 @@
         <input type="submit" value="Go">
     </form>
 </div>
+-->
+
+<div class="mx-auto mt-2 max-w-4xl px-4 py-4 sm:mt-4 sm:px-6 md:mt-6 lg:mt-8 lg:px-8 xl:mt-10 bg-slate-100 rounded-md">
+    <form action="#" method="post" class="space-y-6">
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <div>
+                    <label for="attendees" class="block text-sm font-medium text-gray-900">Attendees</label>
+                    <input type="text" id="attendees" name="attendees"
+                        class="block w-full mt-1 text-sm border-gray-300 rounded-md">
+                </div>
+                <!-- This is where the list of attendees will go -->
+                <ul id="attendee-list" class="mt-2 space-y-1 text-sm text-gray-500 list-disc list-inside">
+                    <!-- Example attendee -->
+                    <!-- <li>John Doe</li> -->
+                </ul>
+            </div>
+            <div>
+                <div>
+                    <label for="description" class="block text-sm font-medium text-gray-900">Description</label>
+                    <input type="text" id="description" name="description"
+                        class="block w-full mt-1 text-sm border-gray-300 rounded-md">
+                </div>
+                <div class="mt-4">
+                    <label for="event" class="block text-sm font-medium text-gray-900">Event</label>
+                    <select id="event" name="event" class="block w-full mt-1 text-sm border-gray-300 rounded-md">
+                        <option>Select event</option>
+                        <!-- Add event options here -->
+                    </select>
+                </div>
+                <div class="mt-4">
+                    <label for="amount" class="block text-sm font-medium text-gray-900">Amount</label>
+                    <input type="number" id="amount" name="amount"
+                        class="block w-full mt-1 text-sm border-gray-300 rounded-md">
+                </div>
+                <div class="mt-4">
+                    <label for="costPerPerson" class="block text-sm font-medium text-gray-900">Cost per Person</label>
+                    <input type="number" id="costPerPerson" name="costPerPerson"
+                        class="block w-full mt-1 text-sm border-gray-300 rounded-md" disabled>
+                </div>
+            </div>
+        </div>
+        <div class="flex justify-end">
+            <button type="submit"
+                class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Submit
+            </button>
+        </div>
+    </form>
+</div>
+
 
 
 {% endblock %}
