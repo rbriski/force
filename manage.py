@@ -1,5 +1,6 @@
 # manage.py
-import logging
+import os
+import json
 import subprocess
 import sys
 import unittest
@@ -12,6 +13,7 @@ from pyairtable import Table
 
 from project.server import at, create_app, db
 from project.server.models import Event, Person, Transaction
+import requests
 
 # logging.basicConfig()
 # logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
@@ -44,6 +46,43 @@ def test():
 def flake():
     """Runs flake8 on the project."""
     subprocess.run(["flake8", "project"])
+
+
+@cli.command()
+def invoice():
+    """Send invoices to parents"""
+    """python manage.py invoice"""
+    for p in Person.query.all():
+        bal = p.balance()
+        if bal < -0.01:
+            if p.name == "Ayla Briski":
+                print(p.name)
+                print(p.balance())
+                print("\n--\n")
+
+                for rent in p.parents:
+                    requests.post(
+                        "https://api.mailgun.net/v3/m.deanzaforce.club/messages",
+                        auth=("api", os.environ["MAILGUN_API_KEY"]),
+                        data={
+                            "from": "DeAnza 2010G - Bob Briski <postmaster@m.deanzaforce.club>",
+                            "to": rent.name + " <rbriski+force@gmail.com>",
+                            "subject": "2010G Force : Balance for "
+                            + p.name
+                            + " is "
+                            + str(p.balance() * -1),
+                            "template": "force-payment-request",
+                            "h:X-Mailgun-Variables": json.dumps(
+                                {
+                                    "player_name": p.name,
+                                    "parent_name": rent.name,
+                                    "amount": str(p.balance() * -1),
+                                    "ledger_link": "https://deanzaforce.club/"
+                                    + p.at_id,
+                                }
+                            ),
+                        },
+                    )
 
 
 @cli.command()

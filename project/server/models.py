@@ -8,10 +8,10 @@
 import uuid
 
 from project.server import db
+from decimal import Decimal
 
 
 class Base(db.Model):
-
     __abstract__ = True
 
     id = db.Column(db.CHAR(36), primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -100,7 +100,8 @@ class Person(Base):
         for t in self.transactions:
             total += t.per_person()
 
-        return total
+        value = Decimal(total)
+        return round(value, 2)
 
 
 class Transaction(Base):
