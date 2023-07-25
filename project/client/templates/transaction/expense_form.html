@@ -23,19 +23,40 @@
 -->
 
 <div class="mx-auto mt-2 max-w-4xl px-4 py-4 sm:mt-4 sm:px-6 md:mt-6 lg:mt-8 lg:px-8 xl:mt-10 bg-slate-100 rounded-md">
-    <form action="#" method="post" class="space-y-6">
+    <form action="/expenses/search" data-turbo-frame="player_list">
         <div class="grid grid-cols-2 gap-4">
             <div>
-                <div>
+                <div class="mb-5">
                     <label for="attendees" class="block text-sm font-medium text-gray-900">Attendees</label>
                     <input type="text" id="attendees" name="attendees"
                         class="block w-full mt-1 text-sm border-gray-300 rounded-md">
                 </div>
                 <!-- This is where the list of attendees will go -->
-                <ul id="attendee-list" class="mt-2 space-y-1 text-sm text-gray-500 list-disc list-inside">
-                    <!-- Example attendee -->
-                    <!-- <li>John Doe</li> -->
-                </ul>
+                <turbo-frame id="player_list">
+                    <div id="player_list">
+                        <ul class="max-w-md divide-y divide-gray-200 dark:divide-gray-700">
+                            {% for p in players %}
+                            <li class="py-2 sm:pb-3">
+                                <div class="flex items-center space-x-4">
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-medium text-gray-900 truncate dark:text-white">
+                                            {{ p.name }}
+                                        </p>
+                                        <p class="text-sm text-gray-500 truncate dark:text-gray-400">
+                                            {{ p.email }}
+                                        </p>
+                                    </div>
+                                    <div
+                                        class="inline-flex items-center text-base font-semibold text-gray-900 dark:text-white">
+                                        ${{ p.balance() | round_currency_up | abs }}
+                                    </div>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </turbo-frame>
+
             </div>
             <div>
                 <div>

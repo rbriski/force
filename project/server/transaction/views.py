@@ -4,7 +4,7 @@ from flask import Blueprint, redirect, render_template
 from flask_wtf import FlaskForm
 from wtforms import BooleanField, DecimalField, HiddenField, StringField
 
-from project.server.models import Transaction
+from project.server.models import Transaction, Person
 
 transaction_blueprint = Blueprint("transaction", __name__)
 
@@ -39,4 +39,6 @@ def add_expense():
     f = TransactionForm()
     if f.validate_on_submit():
         return redirect("/expenses")
-    return render_template("transaction/expense_form.html", f=f)
+
+    players = Person.all_players()
+    return render_template("transaction/expense_form.html", f=f, players=players)

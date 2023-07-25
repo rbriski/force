@@ -80,6 +80,15 @@ class Person(Base):
         viewonly=True,
     )
 
+    @classmethod
+    def all_players(klass):
+        ps = []
+        for p in klass.query.all():
+            if p.parents:
+                ps.append(p)
+
+        return ps
+
     def ledger(self):
         total = 0
         ordered_transactions = []
