@@ -54,13 +54,16 @@ def invoice():
     """python manage.py invoice"""
     for p in Person.query.all():
         bal = p.balance()
-        if bal < -0.01:
+        if bal < -500:
+            # if p.name != "Ayla Briski":
+            #     continue
             print(p.name)
             print(p.balance())
             print("\n--\n")
 
             for rent in p.parents:
                 print(rent.name)
+
                 continue
                 requests.post(
                     "https://api.mailgun.net/v3/m.deanzaforce.club/messages",
@@ -69,10 +72,7 @@ def invoice():
                         "from": "DeAnza 2010G - Bob Briski <postmaster@m.deanzaforce.club>",
                         "to": rent.name + " <" + rent.email + ">",
                         "h:Reply-To": "Bob Briski <rbriski+force@gmail.com>",
-                        "subject": "2010G Force : Balance for "
-                        + p.name
-                        + " is "
-                        + str(p.balance() * -1),
+                        "subject": "2010G Force : Costs for Fall Season",
                         "template": "force-payment-request",
                         "h:X-Mailgun-Variables": json.dumps(
                             {
