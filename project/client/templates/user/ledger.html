@@ -8,14 +8,14 @@
             <h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl md:text-6xl">
                 <span class="block xl:inline">Balance: {{ balance | round_currency_up | currency }}</span>
             </h1>
-            {% if balance <= 0 %} <div class="mt-5 sm:mt-8 justify-center">
-
+            {% if balance < -0.01 %} <div class="mt-5 sm:mt-8 justify-center">
                 <div class="rounded-md shadow">
                     <a href="https://www.paypal.com/paypalme/Force2010G/{{ balance  | round_currency_up | abs }}"
                         class="flex w-full items-center justify-center rounded-md border border-transparent bg-indigo-600 px-8 py-3 text-base font-medium text-white hover:bg-indigo-700 md:py-4 md:px-10 md:text-lg">Pay
                     </a>
                 </div>
-        </div>{% endif %}
+        </div>
+        {% endif %}
     </div>
 </section>
 
