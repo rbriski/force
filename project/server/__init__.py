@@ -7,13 +7,14 @@ import arrow
 from flask import Flask, render_template
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+from flask_moment import Moment
 
 db = SQLAlchemy()
 migrate = Migrate()
+moment = Moment()
 
 
 def create_app(script_info=None):
-
     # instantiate the app
     app = Flask(
         __name__,
@@ -29,6 +30,7 @@ def create_app(script_info=None):
 
     db.init_app(app)
     migrate.init_app(app, db)
+    moment.init_app(app)
 
     # register blueprints
     from project.server.main.views import main_blueprint

@@ -55,8 +55,8 @@ def invoice():
     for p in Person.query.all():
         bal = p.balance()
         if bal < -500:
-            # if p.name != "Ayla Briski":
-            #     continue
+            if p.name != "Ayla Briski":
+                continue
             print(p.name)
             print(p.balance())
             print("\n--\n")
@@ -64,7 +64,7 @@ def invoice():
             for rent in p.parents:
                 print(rent.name)
 
-                continue
+                # continue
                 requests.post(
                     "https://api.mailgun.net/v3/m.deanzaforce.club/messages",
                     auth=("api", os.environ["MAILGUN_API_KEY"]),
@@ -72,7 +72,7 @@ def invoice():
                         "from": "DeAnza 2010G - Bob Briski <postmaster@m.deanzaforce.club>",
                         "to": rent.name + " <" + rent.email + ">",
                         "h:Reply-To": "Bob Briski <rbriski+force@gmail.com>",
-                        "subject": "2010G Force : Costs for Fall Season",
+                        "subject": "2010G Force : 2023 ECNL Showcase Fees",
                         "template": "force-payment-request",
                         "h:X-Mailgun-Variables": json.dumps(
                             {
