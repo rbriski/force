@@ -13,7 +13,7 @@
   {% block css %}{% endblock %}
 </head>
 
-<body>
+<body class="bg-gray-50 dark:bg-gray-900">
   <div class="container w-full max-w-screen-xl mx-auto px-6">
 
     {% include 'header.html' %}
@@ -27,6 +27,7 @@
   </div>
   <!-- scripts -->
   <script src="{{url_for('static', filename='main.js')}}" type="text/javascript"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.8.1/flowbite.min.js"></script>
   {% block js %}{% endblock %}
 
 </body>

@@ -1,5 +1,5 @@
 module.exports = {
-    content: ['./project/client/templates/**/*.html'],
+    content: ['./project/client/templates/**/*.html', './project/client/static/src/**/*.js', './node_modules/flowbite/**/*.js'],
     theme: {
         extend: {},
     },
@@ -7,5 +7,6 @@ module.exports = {
         extend: {},
     },
     plugins: [
-    ],
+        require("flowbite/plugin")
+    ]
 }
