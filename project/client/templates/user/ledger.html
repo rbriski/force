@@ -148,8 +148,6 @@
                         <tr>
                             <th scope="col" class="px-4 py-3">Name</th>
                             <th scope="col" class="px-4 py-3">Date</th>
-                            <th scope="col" class="px-4 py-3">Event</th>
-                            <th scope="col" class="px-4 py-3">Type</th>
                             <th scope="col" class="px-4 py-3">Amount</th>
                             <th scope="col" class="px-4 py-3">Balance</th>
                         </tr>
@@ -158,18 +156,22 @@
                         {% for it in ledger %}
                         <tr class="border-b dark:border-gray-700">
                             <th scope="row" class="px-4 py-3 font-medium text-gray-900 dark:text-white">
-                                {{it.transaction.description | truncate(30,true) }}</th>
+                                <div class="pl-3">
+                                    <div class="text-base font-semibold">{{it.transaction.description |
+                                        truncate(30,true) }}</div>
+                                    <div class="font-normal text-gray-500">{% if it.transaction.event -%}
+                                        {{ it.transaction.event.name | truncate(20,true)}}
+                                        {% endif -%}</div>
+                                </div>
+                            </th>
                             <td class="px-4 py-3">{{ it.transaction.created_at.strftime('%b %d, %Y') }}</td>
                             <td class="px-4 py-3">
-                                {% if it.transaction.event -%}
-                                {{ it.transaction.event.name | truncate(20,true)}}
-                                {% endif -%}</td>
-                            <td class="px-4 py-3">{% if it.transaction.amount > 0 %}
-                                <p class="text-sm text-gray-50 bg-green-700 max-w-fit rounded-md mt-1 px-2">
-                                    Credit
-                                </p>{% endif %}
-                            </td>
-                            <td class="px-4 py-3">{{ it.transaction.per_person() | round_currency_up | currency }}
+                                <div class="flex items-center">
+                                    {% if it.transaction.amount > 0 %}
+                                    <div class="h-2.5 w-2.5 rounded-full bg-green-500 mr-2"></div>
+                                    {% endif %}
+                                    {{ it.transaction.per_person() | round_currency_up | currency }}
+                                </div>
                             </td>
                             <td class="px-4 py-3">{{ it.total | round_currency_up | currency }}</td>
                         </tr>
