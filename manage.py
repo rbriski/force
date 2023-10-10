@@ -1,19 +1,20 @@
 # manage.py
-import os
 import json
+import os
 import subprocess
 import sys
 import unittest
 from datetime import datetime
 from pprint import pprint
 
+import requests
 from dotenv import load_dotenv
 from flask.cli import FlaskGroup
 from pyairtable import Table
 
 from project.server import at, create_app, db
 from project.server.models import Event, Person, Transaction
-import requests
+from project.teamsnap import Teamsnap
 
 # logging.basicConfig()
 # logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
@@ -229,6 +230,45 @@ def pexpenses():
                 print("--" + expense.description)
 
     db.session.commit()
+
+
+@cli.command()
+def teams():
+    ts = Teamsnap(
+        username=os.environ["TEAMSNAP_LOGIN"],
+        password=os.environ["TEAMSNAP_PASSWORD"],
+    )
+    teams = ts.teams()
+    print(teams)
+
+
+@cli.command()
+def roster():
+    ts = Teamsnap(
+        username=os.environ["TEAMSNAP_LOGIN"],
+        password=os.environ["TEAMSNAP_PASSWORD"],
+    )
+    roster = ts.roster(8063393)
+    print(roster)
+
+
+@cli.command()
+def schedule():
+    ts = Teamsnap(
+        username=os.environ["TEAMSNAP_LOGIN"],
+        password=os.environ["TEAMSNAP_PASSWORD"],
+    )
+    events = ts.schedule(8063393)
+    print(events)
+
+
+@cli.command()
+def event():
+    ts = Teamsnap(
+        username=os.environ["TEAMSNAP_LOGIN"],
+        password=os.environ["TEAMSNAP_PASSWORD"],
+    )
+    ts.event("8063393/schedule/view_event/296356109")
 
 
 @cli.command()
