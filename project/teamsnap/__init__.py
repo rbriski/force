@@ -1,13 +1,17 @@
+import re
 from contextlib import contextmanager
-from typing import Generator, List, Tuple
+from typing import Any, Generator, List, Tuple
 from urllib.parse import parse_qs, urlparse
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
+from slugify import slugify
 
 from .handler import Handler
-from .models import Player, Team, ShortEvent
+from .models import Event, Player, ShortEvent, Team, EventTime
+
+from pprint import pprint
 
 DASH_URL = "https://go.teamsnap.com/team/dashboard"
 
@@ -242,56 +246,82 @@ class Teamsnap:
 
         return events
 
-    def event(self, link: str) -> List[Player] | None:
+    def parser_date_time(values: list[Tag | Any]) -> EventTime:
+        # There should be only one div with the date and time
+        date_time_div = values[0]
+        time_pattern = r"\b\d{1,2}:\d{2}\s?(AM|PM|am|pm)\b"
+
+        # Extracting Date and Time
+        date_time = " ".join(
+            [span.get_text() for span in date_time_div.find_all("span")]
+        )
+        arrival_time = date_time_div.select_one("small").get_text()
+
+        match = re.search(time_pattern, arrival_time)
+        if match:
+            # If a match is found, return the match.
+            arrival_time = match.group()
+
+        return EventTime(datetime=date_time, arrival_time=arrival_time)
+
+    def parser_address(values: list[Tag | Any]) -> str:
+        # Extracting Address
+        address_div = values[0]
+        return " ".join([span.get_text() for span in address_div.find_all("span")])
+
+    def parser_availability(values: list[Tag | Any]) -> list[Player]:
+        # Extracting Players
+        table = values[0]
+        players_div = table.select(".Panel-row.Panel-row--withCells")
+
+        players = []
+        for player_div in players_div:
+            number = player_div.select_one(".Panel-cell.u-size1of4 span").get_text()
+            pattern = r"^[#\s]*"
+            number = re.sub(pattern, "", number)
+
+            name = player_div.select_one(".Panel-cell.u-size3of4 span").get_text()
+            # order = player_div.select_one(
+            #     '.Panel-cell.u-size1of4[style*="rgb(122, 122, 122)"] span'
+            # ).get_text()
+
+            p = Player(name=name, number=number)
+            players.append(p)
+
+        return players
+
+    parsers = {
+        "date_time": parser_date_time,
+        "address": parser_address,
+        "availability": parser_availability,
+    }
+
+    def get_all_text(self, sections: list[Tag | Any]) -> list[str] | None:
+        return " ".join([section.get_text() for section in sections])
+
+    def event(self, link: str) -> Event | None:
+        evt = {}
         with self.__init_ts() as ts:
             url = f"https://go.teamsnap.com/{link}"
-            event_html = ts.get_source(url, wait_for_xpath="//div[text()='Date/Time']")
+            event_html = ts.get_source(url, wait_for_xpath="//strong[text()='Players']")
 
             soup = BeautifulSoup(event_html, "html.parser")
             table = soup.find("div", {"id": "root"})
 
             # soup = BeautifulSoup(event_html, "html.parser")
 
-            # Extracting Date and Time
-            date_time_div = table.select_one(
-                '.Panel-cell:contains("Date/Time:") + .Panel-cell'
-            )
-            date_time = " ".join(
-                [span.get_text() for span in date_time_div.find_all("span")]
-            )
-            arrival_time = date_time_div.select_one("small").get_text()
+            for row in table.select(".Panel-row.Panel-row--withCells"):
+                (name, *values) = row.select(".Panel-cell")
+                parser_name = slugify(name.get_text(), separator="_")
 
-            # Extracting Location
-            location_div = table.select_one(
-                '.Panel-cell:contains("Location:") + .Panel-cell'
-            )
-            location = location_div.a.get_text()
+                parsed = None
+                if parser_name in self.parsers:
+                    parsed = self.parsers[parser_name](values)
+                else:
+                    parsed = self.get_all_text(values)
 
-            # Extracting Address
-            address_div = table.select_one(
-                '.Panel-cell:contains("Address:") + .Panel-cell'
-            )
-            address = " ".join(
-                [span.get_text() for span in address_div.find_all("span")]
-            )
+                if parser_name in Event.model_fields.keys():
+                    evt[parser_name] = parsed
 
-            # Extracting players' information
-            # players_div = table.select(".Panel-row.Panel-row--withCells")
-            # players = []
-            # for player_div in players_div:
-            #     number = player_div.select_one(".Panel-cell.u-size1of4 span").get_text()
-            #     name = player_div.select_one(".Panel-cell.u-size3of4 span").get_text()
-            #     order = player_div.select_one(
-            #         '.Panel-cell.u-size1of4[style*="rgb(122, 122, 122)"] span'
-            #     ).get_text()
-            #     players.append({"Number": number, "Name": name, "Order": order})
-
-            print(f"Date and Time: {date_time}")
-            print(f"Arrival Time: {arrival_time}")
-            print(f"Location: {location}")
-            print(f"Address: {address}")
-            # print("Players:")
-            # for player in players:
-            #     print(
-            #         f"Number: {player['Number']}, Name: {player['Name']}, Order: {player['Order']}"
-            #     )
+        pprint(evt)
+        return Event(**evt)

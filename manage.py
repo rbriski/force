@@ -268,7 +268,10 @@ def event():
         username=os.environ["TEAMSNAP_LOGIN"],
         password=os.environ["TEAMSNAP_PASSWORD"],
     )
-    ts.event("8063393/schedule/view_event/296356109")
+    # ts.event("8063393/schedule/view_game/302796165")
+    evt = ts.event("8063393/schedule/view_event/301831993")
+    # evt = ts.event("8063393/schedule/view_game/302796036")
+    print(evt)
 
 
 @cli.command()
