@@ -143,3 +143,68 @@ class OrderedTransaction:
     def __init__(self, total: float, transaction: Transaction):
         self.total = total
         self.transaction = transaction
+
+
+class TSTeam(Base):
+    __tablename__ = "ts_teams"
+
+    team_id = db.Column(db.NUMERIC)
+    roster_id = db.Column(db.NUMERIC)
+    name = db.Column(db.VARCHAR)
+    link = db.Column(db.VARCHAR)
+    role = db.Column(db.VARCHAR)
+    additional_info = db.Column(db.VARCHAR)
+
+
+class TSPlayer(Base):
+    __tablename__ = "ts_players"
+
+    name = db.Column(db.VARCHAR)
+    link = db.Column(db.VARCHAR)
+    image = db.Column(db.VARCHAR)
+    number = db.Column(db.VARCHAR)
+    position = db.Column(db.VARCHAR)
+
+    team_id = db.Column("team_id", db.ForeignKey("ts_players.id"))
+    # team = db.relationship("TSTeam")
+
+    # events = db.relationship(
+    #     "PlayerEvents",
+    #     secondary="m_ts_player_events",
+    #     primaryjoin="TSPlayer.id == m_ts_player_events.c.player_id",
+    #     secondaryjoin="TSEvent.id == m_ts_player_events.c.event_id",
+    #     back_populates="players",
+    #     order_by="TSEvent.created_at",
+    # )
+
+
+class TSContact(Base):
+    __tablename__ = "ts_contacts"
+
+    name = db.Column(db.VARCHAR)
+    email = db.Column(db.VARCHAR)
+    relationship = db.Column(db.VARCHAR)
+
+    player_id = db.Column("player_id", db.ForeignKey("ts_players.id"))
+    player = db.relationship("TSPlayer")
+
+
+class TSEvent(Base):
+    __tablename__ = "ts_events"
+
+    event_id = db.Column(db.NUMERIC)
+    name = db.Column(db.VARCHAR)
+    link = db.Column(db.VARCHAR)
+    address = db.Column(db.VARCHAR)
+    date_time = db.Column(db.VARCHAR)
+    arrival_time = db.Column(db.VARCHAR)
+    location = db.Column(db.VARCHAR)
+    location_details = db.Column(db.VARCHAR)
+    notes = db.Column(db.VARCHAR)
+
+
+class PlayerEvents(Base):
+    __tablename__ = "m_ts_player_events"
+
+    event_id = db.Column("event_id", db.ForeignKey("ts_events.id"), primary_key=True)
+    player_id = db.Column("player_id", db.ForeignKey("ts_players.id"), primary_key=True)
