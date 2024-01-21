@@ -1,145 +1,233 @@
-# project/server/models.py
-
-
-# import datetime
-
-# from flask import current_app
-
-import uuid
-
-from project.server import db
+import datetime
+from typing import ClassVar
 from decimal import Decimal
+from uuid import uuid4, UUID
+
+from pydantic import BaseModel, Field
+from abc import ABC
+import svcs
+from psycopg import Connection
 
 
-class Base(db.Model):
-    __abstract__ = True
+class AirtableMixin(ABC):
+    @classmethod
+    def exists_airtable(cls, cursor, at_id: str) -> bool:
+        cursor.execute(
+            f"""
+            SELECT EXISTS (
+                SELECT 1
+                FROM {cls.table_name}
+                WHERE at_id = %s
+            )
+            """,
+            (at_id,),
+        )
+        return bool(cursor.fetchone()["exists"])
 
-    id = db.Column(db.CHAR(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
-    updated_at = db.Column(
-        db.DateTime,
-        default=db.func.current_timestamp(),
-        onupdate=db.func.current_timestamp(),
-    )
+    @classmethod
+    def find_by_at_id(cls, cursor, at_id: str) -> "Person":
+        cursor.execute(
+            f"""
+            SELECT *
+            FROM {cls.table_name}
+            WHERE at_id = %s
+            """,
+            (at_id,),
+        )
+        vals = cursor.fetchone()
+        return cls(**vals)
+
+
+class Base(BaseModel):
+    id: UUID = Field(default_factory=lambda: uuid4().hex)
+    created_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+    updated_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
 
 
 class PlayerParent(Base):
-    __tablename__ = "m_player_parent"
+    table_name: ClassVar[str] = "m_player_parent"
 
-    player_id = db.Column("player_id", db.ForeignKey("people.id"), primary_key=True)
-    parent_id = db.Column("parent_id", db.ForeignKey("people.id"), primary_key=True)
+    player_id: UUID
+    parent_id: UUID
 
 
 class PlayerTransactions(Base):
-    __tablename__ = "m_people_transactions"
+    table_name: ClassVar[str] = "m_people_transactions"
 
-    person_id = db.Column("person_id", db.ForeignKey("people.id"), primary_key=True)
-    transaction_id = db.Column(
-        "transaction_id", db.ForeignKey("transactions.id"), primary_key=True
-    )
+    person_id: UUID
+    transaction_id: UUID
 
 
-class Person(Base):
-    __tablename__ = "people"
+class Event(Base, AirtableMixin):
+    table_name: ClassVar[str] = "events"
 
-    at_id = db.Column(db.VARCHAR)
-    name = db.Column(db.VARCHAR)
-    description = db.Column(db.VARCHAR)
-    email = db.Column(db.VARCHAR)
-    phone = db.Column(db.VARCHAR)
+    at_id: str
+    name: str
+    date: datetime.date | None
+    description: str | None
 
-    parents = db.relationship(
-        "Person",
-        secondary="m_player_parent",
-        primaryjoin="Person.id == m_player_parent.c.player_id",
-        secondaryjoin="Person.id == m_player_parent.c.parent_id",
-        backref="players",
-    )
+    def insert(self, cursor):
+        cursor.execute(
+            f"""INSERT INTO {self.table_name} (id, at_id, created_at, updated_at, name, date, description) VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+            (
+                self.id,
+                self.at_id,
+                self.created_at,
+                self.updated_at,
+                self.name,
+                self.date,
+                self.description,
+            ),
+        )
 
-    transactions = db.relationship(
-        "Transaction",
-        secondary="m_people_transactions",
-        primaryjoin="Person.id == m_people_transactions.c.person_id",
-        secondaryjoin="Transaction.id == m_people_transactions.c.transaction_id",
-        back_populates="people",
-        order_by="Transaction.created_at",
-    )
 
-    expenses = db.relationship(
-        "Transaction",
-        secondary="m_people_transactions",
-        primaryjoin="Person.id == m_people_transactions.c.person_id",
-        secondaryjoin="and_(Transaction.id == m_people_transactions.c.transaction_id, Transaction.debit==1)",  # noqa: E501
-        back_populates="people",
-        order_by="Transaction.created_at",
-        viewonly=True,
-    )
+class TransactionDB(Base, AirtableMixin):
+    table_name: ClassVar[str] = "transactions"
 
-    payments = db.relationship(
-        "Transaction",
-        secondary="m_people_transactions",
-        primaryjoin="Person.id == m_people_transactions.c.person_id",
-        secondaryjoin="and_(Transaction.id == m_people_transactions.c.transaction_id, Transaction.debit==0)",  # noqa: E501
-        back_populates="people",
-        order_by="Transaction.created_at",
-        viewonly=True,
-    )
+    at_id: str
+    event_id: UUID | None
+    amount: float
+    description: str | None
+    debit: bool
 
-    def ledger(self):
+    def insert(self, cursor):
+        cursor.execute(
+            f"""INSERT INTO {self.table_name} (id, at_id, created_at, updated_at, event_id, amount, description, debit) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+            (
+                self.id,
+                self.at_id,
+                self.created_at,
+                self.updated_at,
+                self.event_id,
+                self.amount,
+                self.description,
+                self.debit,
+            ),
+        )
+
+
+class Transaction(TransactionDB):
+    num_attendees: int | None
+    amount_per_person: float | None
+    event: Event | None
+
+    @classmethod
+    def collect_by_user_at_id(cls, person_at_id: str) -> list["Transaction"]:
+        conn = svcs.flask.get(Connection)
+        cursor = conn.cursor()
+        cursor.execute(
+            f"""with user_transactions as (
+            select *
+            from {PlayerTransactions.table_name} mpt
+                    join {Person.table_name} p on mpt.person_id = p.id
+            where p.at_id = %s
+        ),
+            people_per as (
+                select mpt.transaction_id, count(*) as attendees
+                from {PlayerTransactions.table_name} mpt
+                        join {Person.table_name} p on mpt.person_id = p.id
+                        join {cls.table_name} t on mpt.transaction_id = t.id
+                group by 1
+            )
+        select t.id as t_id,
+            t.created_at as t_created_at,
+            t.updated_at as t_updated_at,
+            t.at_id as t_at_id,
+            t.event_id as t_event_id,
+            t.amount as t_amount,
+            t.description as t_description,
+            t.debit as t_debit,
+            attendees as t_attendees,
+            t.amount / attendees as t_per_person,
+            e.id as e_id,
+            e.created_at as e_created_at,
+            e.updated_at as e_updated_at,
+            e.at_id as e_at_id,
+            e.name as e_name,
+            e.date as e_date,
+            e.description as e_description
+        from people_per pp
+                join user_transactions ut on pp.transaction_id = ut.transaction_id
+                join {cls.table_name} t on pp.transaction_id = t.id
+                left join {Event.table_name} e on t.event_id=e.id
+        order by t.created_at;
+                    """,
+            (person_at_id,),
+        )
+        for vals in cursor:
+            t = cls(
+                id=vals["t_id"],
+                created_at=vals["t_created_at"],
+                updated_at=vals["t_updated_at"],
+                at_id=vals["t_at_id"],
+                event_id=vals["t_event_id"],
+                amount=vals["t_amount"],
+                description=vals["t_description"],
+                debit=vals["t_debit"],
+                num_attendees=vals["t_attendees"],
+                amount_per_person=vals["t_per_person"],
+                event=None,
+            )
+            if t.event_id:
+                t.event = Event(
+                    id=vals["e_id"],
+                    created_at=vals["e_created_at"],
+                    updated_at=vals["e_updated_at"],
+                    at_id=vals["e_at_id"],
+                    name=vals["e_name"],
+                    date=vals["e_date"],
+                    description=vals["e_description"],
+                )
+            yield t
+
+
+class Person(Base, AirtableMixin):
+    table_name: ClassVar[str] = "people"
+
+    at_id: str
+    name: str
+    description: str | None
+    email: str | None
+    phone: str | None
+
+    def insert(self, cursor):
+        cursor.execute(
+            f"""INSERT INTO {self.table_name} (id, at_id, created_at, updated_at, description, name, email, phone) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+            (
+                self.id,
+                self.at_id,
+                self.created_at,
+                self.updated_at,
+                self.description,
+                self.name,
+                self.email,
+                self.phone,
+            ),
+        )
+
+    def transactions(self):
+        yield from Transaction.collect_by_user_at_id(person_at_id=self.at_id)
+
+    def ledger(self, cursor):
         total = 0
         ordered_transactions = []
-        for t in self.transactions:
-            total += t.per_person()
+        for t in self.transactions():
+            total += t.amount_per_person
             ot = OrderedTransaction(total=total, transaction=t)
             ordered_transactions.append(ot)
 
         return ordered_transactions
 
-    def balance(self):
+    def balance(self, cursor):
         total = 0
-        for t in self.transactions:
-            total += t.per_person()
+        for t in self.transactions():
+            total += t.amount_per_person
 
         value = Decimal(total)
         return round(value, 2)
 
 
-class Transaction(Base):
-    __tablename__ = "transactions"
-
-    at_id = db.Column(db.VARCHAR)
-    event_id = db.Column(db.VARCHAR)
-    amount = db.Column(db.FLOAT)
-    description = db.Column(db.VARCHAR)
-    debit = db.Column(db.BOOLEAN)
-
-    event_id = db.Column("event_id", db.ForeignKey("events.id"))
-    event = db.relationship("Event")
-
-    people = db.relationship(
-        "Person",
-        secondary="m_people_transactions",
-        primaryjoin="Transaction.id == m_people_transactions.c.transaction_id",
-        secondaryjoin="Person.id == m_people_transactions.c.person_id",
-        back_populates="transactions",
-    )
-
-    def per_person(self):
-        return self.amount / len(self.people)
-
-
-class Event(Base):
-    __tablename__ = "events"
-
-    at_id = db.Column(db.VARCHAR)
-    name = db.Column(db.VARCHAR)
-    date = db.Column(db.DATE)
-    description = db.Column(db.VARCHAR)
-
-    transaction = db.relationship("Transaction", back_populates="event")
-
-
 class OrderedTransaction:
-    def __init__(self, total: float, transaction: Transaction):
+    def __init__(self, total: float, transaction: TransactionDB):
         self.total = total
         self.transaction = transaction

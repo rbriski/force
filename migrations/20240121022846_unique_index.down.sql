@@ -1,0 +1,3 @@
+drop index uniq_parent_id_player_id_idx;
+
+drop index uniq_person_id_transaction_id_idx;

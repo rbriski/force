@@ -172,7 +172,7 @@
                                     {% if it.transaction.amount > 0 %}
                                     <div class="h-2.5 w-2.5 rounded-full bg-green-500 mr-2"></div>
                                     {% endif %}
-                                    {{ it.transaction.per_person() | round_currency_up | currency }}
+                                    {{ it.transaction.amount_per_person | round_currency_up | currency }}
                                 </div>
                             </td>
                             <td class="px-4 py-3">{{ it.total | round_currency_up | currency }}</td>
