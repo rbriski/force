@@ -16,6 +16,7 @@ from project.server import at, create_app
 from project.server.models import (
     Event,
     Person,
+    TransactionDB,
     Transaction,
     PlayerParent,
     PlayerTransactions,
@@ -175,14 +176,14 @@ def transactions():
     expenses = Table(at.api_key, at.base_id, at.tables["expenses"])
     for p in expenses.all():
         f = p["fields"]
-        if Transaction.exists_airtable(cursor, at_id=p["id"]):
+        if TransactionDB.exists_airtable(cursor, at_id=p["id"]):
             continue
 
         event_id = None
         if "Event" in f:
             evt_id = f["Event"][0]
             event_id = Event.find_by_at_id(cursor, at_id=evt_id).id
-        expense = Transaction(
+        expense = TransactionDB(
             at_id=p["id"],
             created_at=p["createdTime"],
             updated_at=p["createdTime"],
@@ -197,14 +198,14 @@ def transactions():
     payments = Table(at.api_key, at.base_id, at.tables["payments"])
     for p in payments.all():
         f = p["fields"]
-        if Transaction.exists_airtable(cursor, at_id=p["id"]):
+        if TransactionDB.exists_airtable(cursor, at_id=p["id"]):
             continue
 
         event_id = None
         if "Event" in f:
             evt_id = f["Event"][0]
             event_id = Event.find_by_at_id(cursor, at_id=evt_id).id
-        payment = Transaction(
+        payment = TransactionDB(
             at_id=p["id"],
             created_at=p["createdTime"],
             updated_at=p["createdTime"],
@@ -221,7 +222,7 @@ def transactions():
         if "Payments" in r["fields"]:
             player = Person.find_by_at_id(cursor, at_id=r["id"])
             for payment_at_id in r["fields"]["Payments"]:
-                t = Transaction.find_by_at_id(cursor, at_id=payment_at_id)
+                t = TransactionDB.find_by_at_id(cursor, at_id=payment_at_id)
                 cxn = PlayerTransactions(person_id=player.id, transaction_id=t.id)
                 cursor.execute(
                     f"""INSERT INTO {PlayerTransactions.table_name} (id, person_id, transaction_id) VALUES (%s, %s, %s) ON CONFLICT DO NOTHING""",
@@ -229,13 +230,23 @@ def transactions():
                 )
 
             for expense_at_id in r["fields"]["Expenses"]:
-                t = Transaction.find_by_at_id(cursor, at_id=expense_at_id)
+                t = TransactionDB.find_by_at_id(cursor, at_id=expense_at_id)
                 cxn = PlayerTransactions(person_id=player.id, transaction_id=t.id)
                 cursor.execute(
                     f"""INSERT INTO {PlayerTransactions.table_name} (id, person_id, transaction_id) VALUES (%s, %s, %s) ON CONFLICT DO NOTHING""",
                     (cxn.id, cxn.person_id, cxn.transaction_id),
                 )
     conn.commit()
+
+
+@cli.command()
+def tr():
+    conn = svcs.flask.get(Connection)
+    cursor = conn.cursor()
+
+    p = Person.find_by_at_id(cursor, "reckwBcC6q1wijgoB")
+    for t in p.transactions():
+        print(t)
 
 
 # def parentemails():

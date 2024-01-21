@@ -38,7 +38,7 @@ CREATE TABLE public.people (
 CREATE TABLE public.transactions (
     at_id character varying NOT NULL,
     event_id uuid,
-    amount integer NOT NULL,
+    amount decimal NOT NULL,
     description character varying,
     debit boolean NOT NULL,
     id uuid NOT NULL,

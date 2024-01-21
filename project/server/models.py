@@ -58,7 +58,30 @@ class PlayerTransactions(Base):
     transaction_id: UUID
 
 
-class Transaction(Base, AirtableMixin):
+class Event(Base, AirtableMixin):
+    table_name: ClassVar[str] = "events"
+
+    at_id: str
+    name: str
+    date: datetime.date | None
+    description: str | None
+
+    def insert(self, cursor):
+        cursor.execute(
+            f"""INSERT INTO {self.table_name} (id, at_id, created_at, updated_at, name, date, description) VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+            (
+                self.id,
+                self.at_id,
+                self.created_at,
+                self.updated_at,
+                self.name,
+                self.date,
+                self.description,
+            ),
+        )
+
+
+class TransactionDB(Base, AirtableMixin):
     table_name: ClassVar[str] = "transactions"
 
     at_id: str
@@ -66,14 +89,6 @@ class Transaction(Base, AirtableMixin):
     amount: float
     description: str | None
     debit: bool
-
-    def per_person(self):
-        cursor = svcs.flask.get(Connection).cursor()
-        people_count = cursor.execute(
-            f"SELECT COUNT(*) FROM {PlayerTransactions.table_name} where transaction_id=%s",
-            [self.id],
-        ).fetchone()["count"]
-        return self.amount / people_count
 
     def insert(self, cursor):
         cursor.execute(
@@ -89,6 +104,81 @@ class Transaction(Base, AirtableMixin):
                 self.debit,
             ),
         )
+
+
+class Transaction(TransactionDB):
+    num_attendees: int | None
+    amount_per_person: float | None
+    event: Event | None
+
+    @classmethod
+    def collect_by_user_at_id(cls, person_at_id: str) -> list["Transaction"]:
+        conn = svcs.flask.get(Connection)
+        cursor = conn.cursor()
+        cursor.execute(
+            f"""with user_transactions as (
+            select *
+            from {PlayerTransactions.table_name} mpt
+                    join {Person.table_name} p on mpt.person_id = p.id
+            where p.at_id = %s
+        ),
+            people_per as (
+                select mpt.transaction_id, count(*) as attendees
+                from {PlayerTransactions.table_name} mpt
+                        join {Person.table_name} p on mpt.person_id = p.id
+                        join {cls.table_name} t on mpt.transaction_id = t.id
+                group by 1
+            )
+        select t.id as t_id,
+            t.created_at as t_created_at,
+            t.updated_at as t_updated_at,
+            t.at_id as t_at_id,
+            t.event_id as t_event_id,
+            t.amount as t_amount,
+            t.description as t_description,
+            t.debit as t_debit,
+            attendees as t_attendees,
+            t.amount / attendees as t_per_person,
+            e.id as e_id,
+            e.created_at as e_created_at,
+            e.updated_at as e_updated_at,
+            e.at_id as e_at_id,
+            e.name as e_name,
+            e.date as e_date,
+            e.description as e_description
+        from people_per pp
+                join user_transactions ut on pp.transaction_id = ut.transaction_id
+                join {cls.table_name} t on pp.transaction_id = t.id
+                left join {Event.table_name} e on t.event_id=e.id
+        order by t.created_at;
+                    """,
+            (person_at_id,),
+        )
+        for vals in cursor:
+            t = cls(
+                id=vals["t_id"],
+                created_at=vals["t_created_at"],
+                updated_at=vals["t_updated_at"],
+                at_id=vals["t_at_id"],
+                event_id=vals["t_event_id"],
+                amount=vals["t_amount"],
+                description=vals["t_description"],
+                debit=vals["t_debit"],
+                num_attendees=vals["t_attendees"],
+                amount_per_person=vals["t_per_person"],
+                event=None,
+            )
+            if t.event_id:
+                t.event = Event(
+                    id=vals["e_id"],
+                    created_at=vals["e_created_at"],
+                    updated_at=vals["e_updated_at"],
+                    at_id=vals["e_at_id"],
+                    name=vals["e_name"],
+                    date=vals["e_date"],
+                    description=vals["e_description"],
+                )
+            yield t
 
 
 class Person(Base, AirtableMixin):
@@ -115,25 +205,14 @@ class Person(Base, AirtableMixin):
             ),
         )
 
-    def transactions(self, cursor):
-        cursor.execute(
-            f"""
-            SELECT t.*
-            FROM {Transaction.table_name} t join {PlayerTransactions.table_name} pt on t.id = pt.transaction_id
-            WHERE pt.person_id = %s
-            """,
-            (self.id,),
-        )
-        vals = cursor.fetchall()
-
-        for v in vals:
-            yield Transaction(**v)
+    def transactions(self):
+        yield from Transaction.collect_by_user_at_id(person_at_id=self.at_id)
 
     def ledger(self, cursor):
         total = 0
         ordered_transactions = []
-        for t in self.transactions(cursor):
-            total += t.per_person()
+        for t in self.transactions():
+            total += t.amount_per_person
             ot = OrderedTransaction(total=total, transaction=t)
             ordered_transactions.append(ot)
 
@@ -141,37 +220,14 @@ class Person(Base, AirtableMixin):
 
     def balance(self, cursor):
         total = 0
-        for t in self.transactions(cursor):
-            total += t.per_person()
+        for t in self.transactions():
+            total += t.amount_per_person
 
         value = Decimal(total)
         return round(value, 2)
 
 
-class Event(Base, AirtableMixin):
-    table_name: ClassVar[str] = "events"
-
-    at_id: str
-    name: str
-    date: datetime.date | None
-    description: str | None
-
-    def insert(self, cursor):
-        cursor.execute(
-            f"""INSERT INTO {self.table_name} (id, at_id, created_at, updated_at, name, date, description) VALUES (%s, %s, %s, %s, %s, %s, %s)""",
-            (
-                self.id,
-                self.at_id,
-                self.created_at,
-                self.updated_at,
-                self.name,
-                self.date,
-                self.description,
-            ),
-        )
-
-
 class OrderedTransaction:
-    def __init__(self, total: float, transaction: Transaction):
+    def __init__(self, total: float, transaction: TransactionDB):
         self.total = total
         self.transaction = transaction
