@@ -4,5 +4,6 @@ SCRIPT="$(realpath "$1")"
 shift
 SCRIPT_FOLDER="$(dirname $SCRIPT)"
 SCRIPT_NAME="$(basename $SCRIPT)"
+POETRY_SH="/root/.local/bin/poetry"
 
-cd "$SCRIPT_FOLDER" && exec poetry run python "$SCRIPT_NAME" "$@"
+cd "$SCRIPT_FOLDER" && exec $POETRY_SH run python "$SCRIPT_NAME" "$@"

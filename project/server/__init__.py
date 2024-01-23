@@ -5,12 +5,12 @@ import os
 
 import arrow
 from flask import Flask, render_template
-from flask_migrate import Migrate
-from flask_sqlalchemy import SQLAlchemy
+import psycopg
+from psycopg.rows import dict_row
+from psycopg import Connection
 from turbo_flask import Turbo
 
-db = SQLAlchemy()
-migrate = Migrate()
+import svcs
 turbo = Turbo()
 
 
@@ -21,15 +21,26 @@ def create_app(script_info=None):
         template_folder="../client/templates",
         static_folder="../client/static",
     )
+    app = svcs.flask.init_app(app)
 
     locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
 
     # set config
-    app_settings = os.getenv("APP_SETTINGS", "project.server.config.ProductionConfig")
+    app_settings = "project.server.config.Config"
     app.config.from_object(app_settings)
 
-    db.init_app(app)
-    migrate.init_app(app, db)
+    def connection_factory():
+        with psycopg.connect(os.environ["DATABASE_URL"], row_factory=dict_row) as conn:
+            yield conn
+
+    svcs.flask.register_factory(
+        # The app argument makes it good for custom init_app() functions.
+        app,
+        Connection,
+        connection_factory,
+        ping=lambda conn: conn.cursor().execute("SELECT 1"),
+        on_registry_close=lambda conn: conn.close(),
+    )
     turbo.init_app(app)
 
     # register blueprints
@@ -64,7 +75,7 @@ def create_app(script_info=None):
     # shell context for flask cli
     @app.shell_context_processor
     def ctx():
-        return {"app": app, "db": db}
+        return {"app": app, "db": svcs.flask.get(Connection)}
 
     @app.template_filter()
     def paypal_me(amount):
