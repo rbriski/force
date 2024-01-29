@@ -26,7 +26,6 @@ def ledger(rec_id=None):
         abort(404)
 
     ledger = player.ledger(cursor)
-    ledger.reverse()
     balance = player.balance(cursor)
 
     return render_template(

@@ -1,12 +1,13 @@
 import datetime
-from typing import ClassVar
-from decimal import Decimal
-from uuid import uuid4, UUID
-
-from pydantic import BaseModel, Field
 from abc import ABC
+from decimal import Decimal
+from typing import ClassVar
+from uuid import UUID, uuid4
+
 import svcs
+from jinja2 import Environment
 from psycopg import Connection
+from pydantic import BaseModel, Field
 
 
 class AirtableMixin(ABC):
@@ -112,73 +113,59 @@ class Transaction(TransactionDB):
     event: Event | None
 
     @classmethod
-    def collect_by_user_at_id(cls, person_at_id: str) -> list["Transaction"]:
-        conn = svcs.flask.get(Connection)
-        cursor = conn.cursor()
-        cursor.execute(
-            f"""with user_transactions as (
-            select *
-            from {PlayerTransactions.table_name} mpt
-                    join {Person.table_name} p on mpt.person_id = p.id
-            where p.at_id = %s
-        ),
-            people_per as (
-                select mpt.transaction_id, count(*) as attendees
-                from {PlayerTransactions.table_name} mpt
-                        join {Person.table_name} p on mpt.person_id = p.id
-                        join {cls.table_name} t on mpt.transaction_id = t.id
-                group by 1
-            )
-        select t.id as t_id,
-            t.created_at as t_created_at,
-            t.updated_at as t_updated_at,
-            t.at_id as t_at_id,
-            t.event_id as t_event_id,
-            t.amount as t_amount,
-            t.description as t_description,
-            t.debit as t_debit,
-            attendees as t_attendees,
-            t.amount / attendees as t_per_person,
-            e.id as e_id,
-            e.created_at as e_created_at,
-            e.updated_at as e_updated_at,
-            e.at_id as e_at_id,
-            e.name as e_name,
-            e.date as e_date,
-            e.description as e_description
-        from people_per pp
-                join user_transactions ut on pp.transaction_id = ut.transaction_id
-                join {cls.table_name} t on pp.transaction_id = t.id
-                left join {Event.table_name} e on t.event_id=e.id
-        order by t.created_at;
-                    """,
-            (person_at_id,),
+    def _assign_values(cls, vals: dict) -> "Transaction":
+        t = cls(
+            id=vals["t_id"],
+            created_at=vals["t_created_at"],
+            updated_at=vals["t_updated_at"],
+            at_id=vals["t_at_id"],
+            event_id=vals["t_event_id"],
+            amount=vals["t_amount"],
+            description=vals["t_description"],
+            debit=vals["t_debit"],
+            num_attendees=vals["t_attendees"],
+            amount_per_person=vals["t_per_person"],
+            event=None,
         )
-        for vals in cursor:
-            t = cls(
-                id=vals["t_id"],
-                created_at=vals["t_created_at"],
-                updated_at=vals["t_updated_at"],
-                at_id=vals["t_at_id"],
-                event_id=vals["t_event_id"],
-                amount=vals["t_amount"],
-                description=vals["t_description"],
-                debit=vals["t_debit"],
-                num_attendees=vals["t_attendees"],
-                amount_per_person=vals["t_per_person"],
-                event=None,
+        if t.event_id:
+            t.event = Event(
+                id=vals["e_id"],
+                created_at=vals["e_created_at"],
+                updated_at=vals["e_updated_at"],
+                at_id=vals["e_at_id"],
+                name=vals["e_name"],
+                date=vals["e_date"],
+                description=vals["e_description"],
             )
-            if t.event_id:
-                t.event = Event(
-                    id=vals["e_id"],
-                    created_at=vals["e_created_at"],
-                    updated_at=vals["e_updated_at"],
-                    at_id=vals["e_at_id"],
-                    name=vals["e_name"],
-                    date=vals["e_date"],
-                    description=vals["e_description"],
-                )
+        return t
+
+    @classmethod
+    def collect_all(cls) -> list["Transaction"]:
+        conn, env = svcs.flask.get(Connection, Environment)
+        cursor = conn.cursor()
+
+        qry = env.get_template("transactions.sql").render()
+        cursor.execute(qry)
+        for vals in cursor:
+            t = cls._assign_values(vals)
             yield t
+
+    @classmethod
+    def collect_by_user_id(cls, person_id: str) -> list["Transaction"]:
+        conn, env = svcs.flask.get(Connection, Environment)
+        cursor = conn.cursor()
+
+        qry = env.get_template("transactions.sql").render(
+            person_id=person_id,
+        )
+        print(qry)
+        cursor.execute(qry)
+        for vals in cursor:
+            t = cls._assign_values(vals)
+            yield t
+
+    def players(self) -> list["Person"]:
+        yield from Person.collect_players_by_transaction_id(self.id)
 
 
 class Person(Base, AirtableMixin):
@@ -189,6 +176,29 @@ class Person(Base, AirtableMixin):
     description: str | None
     email: str | None
     phone: str | None
+
+    @classmethod
+    def collect_players(cls) -> list["Person"]:
+        conn, env = svcs.flask.get(Connection, Environment)
+        cursor = conn.cursor()
+
+        qry = env.get_template("players.sql").render()
+        cursor.execute(qry)
+        for vals in cursor:
+            p = cls(**vals)
+            yield p
+
+    @classmethod
+    def collect_players_by_transaction_id(cls, transaction_id) -> list["Person"]:
+        conn, env = svcs.flask.get(Connection, Environment)
+        cursor = conn.cursor()
+
+        qry = env.get_template("players.sql").render(transaction_id=transaction_id)
+        # print(qry)
+        cursor.execute(qry)
+        for vals in cursor:
+            p = cls(**vals)
+            yield p
 
     def insert(self, cursor):
         cursor.execute(
@@ -206,12 +216,13 @@ class Person(Base, AirtableMixin):
         )
 
     def transactions(self):
-        yield from Transaction.collect_by_user_at_id(person_at_id=self.at_id)
+        yield from Transaction.collect_by_user_id(person_id=self.id)
 
     def ledger(self, cursor):
         total = 0
         ordered_transactions = []
         for t in self.transactions():
+            print(t)
             total += t.amount_per_person
             ot = OrderedTransaction(total=total, transaction=t)
             ordered_transactions.append(ot)

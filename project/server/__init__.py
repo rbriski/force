@@ -9,8 +9,18 @@ import psycopg
 from psycopg.rows import dict_row
 from psycopg import Connection
 from turbo_flask import Turbo
+from jinja2 import Environment, FileSystemLoader
+
+from project.server.models import (
+    Person,
+    Transaction,
+    PlayerTransactions,
+    Event,
+    PlayerParent,
+)
 
 import svcs
+
 turbo = Turbo()
 
 
@@ -41,6 +51,27 @@ def create_app(script_info=None):
         ping=lambda conn: conn.cursor().execute("SELECT 1"),
         on_registry_close=lambda conn: conn.close(),
     )
+
+    def query_template_factory():
+        env = Environment(
+            loader=FileSystemLoader(app.config["QUERY_DIR"]),
+        )
+        env.globals["g_people_tbl"] = Person.table_name
+        env.globals["g_transactions_tbl"] = Transaction.table_name
+        env.globals["g_m_player_transactions_tbl"] = PlayerTransactions.table_name
+        env.globals["g_events_tbl"] = Event.table_name
+        env.globals["g_m_player_parents_tbl"] = PlayerParent.table_name
+        yield env
+
+    svcs.flask.register_factory(
+        # The app argument makes it good for custom init_app() functions.
+        app,
+        Environment,
+        query_template_factory,
+        ping=True,
+        on_registry_close=None,
+    )
+
     turbo.init_app(app)
 
     # register blueprints

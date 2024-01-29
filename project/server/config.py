@@ -20,6 +20,7 @@ class Config(object):
     DATABASE_URL = os.getenv(
         "DATABASE_URL", "sqlite:///{0}".format(os.path.join(basedir, "force.db"))
     )
+    QUERY_DIR = os.path.join(basedir, "queries")
 
 
 # class DevelopmentConfig(BaseConfig):

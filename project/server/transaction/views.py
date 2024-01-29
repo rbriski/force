@@ -4,7 +4,7 @@ from flask import Blueprint, redirect, render_template
 from flask_wtf import FlaskForm
 from wtforms import BooleanField, DecimalField, HiddenField, StringField
 
-from project.server.models import Transaction, Person
+from project.server.models import Person, Transaction
 
 transaction_blueprint = Blueprint("transaction", __name__)
 
@@ -21,7 +21,9 @@ class TransactionForm(FlaskForm):
 def expenses():
     expenses = []
 
-    for t in Transaction.expenses().order_by(Transaction.created_at.desc()).all():
+    for t in Transaction.collect_all():
+        if not t.debit:
+            continue
         obj = {
             "description": t.description,
             "player_names": [p.name for p in t.players()],

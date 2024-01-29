@@ -1,0 +1,2 @@
+DROP INDEX m_people_transactions_person_id_idx;
+DROP INDEX m_people_transactions_transaction_id_idx;
