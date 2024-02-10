@@ -1,34 +1,10 @@
-[tool.poetry]
+[project]
 name = "force"
 version = "0.1.0"
 description = "Deanza Force Ledger"
 authors = ["rbriski"]
 readme = "README.md"
-
-[tool.poetry.dependencies]
-python = "^3.10"
-flask = "*"
-flask-bcrypt = "*"
-requests = "*"
-pyairtable = "*"
-arrow = "*"
-gunicorn = "*"
-sentry-sdk = {extras = ["flask"], version = "*"}
-python-dotenv = "^0.21.0"
-uuid = "^1.30"
-importlib-resources = "^5.10.2"
-importlib-metadata = "^6.0.0"
-zipp = "^3.11.0"
-svcs = "^23.21.0"
-psycopg = {extras = ["binary"], version = "^3.1.17"}
-pydantic = "^2.5.3"
-
-[tool.poetry.dev-dependencies]
-"flake8" = "*"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires-python = ">=3.10"
 
 [tool.isort]
 profile = "black"

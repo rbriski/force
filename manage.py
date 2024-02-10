@@ -1,29 +1,24 @@
 # manage.py
-import os
-import json
-import subprocess
-import sys
-import unittest
+import locale
 from datetime import datetime
 from pprint import pprint
 
+import svcs
 from dotenv import load_dotenv
 from flask.cli import FlaskGroup
+from psycopg import Connection
 from pyairtable import Table
 
-import svcs
 from project.server import at, create_app
 from project.server.models import (
     Event,
     Person,
-    TransactionDB,
-    Transaction,
     PlayerParent,
     PlayerTransactions,
+    TransactionDB,
 )
-import requests
 
-from psycopg import Connection
+locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
 
 # logging.basicConfig()
 # logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)

@@ -1,0 +1,14 @@
+flask
+flask-bcrypt
+requests
+pyairtable
+arrow
+gunicorn
+python-dotenv
+uuid
+importlib-resources
+importlib-metadata
+zipp
+svcs
+psycopg[binary]
+pydantic
