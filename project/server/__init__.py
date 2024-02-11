@@ -28,7 +28,8 @@ def create_app(script_info=None):
     app.config.from_object(app_settings)
 
     def connection_factory():
-        with psycopg.connect(os.environ["DATABASE_URL"], row_factory=dict_row) as conn:
+        DATABASE_URL = f"postgresql://{os.environ['POSTGRES_USER']}:{os.environ['POSTGRES_PASSWORD']}@{os.environ['DB_HOST']}:5432/postgres?sslmode=disable"
+        with psycopg.connect(DATABASE_URL, row_factory=dict_row) as conn:
             yield conn
 
     svcs.flask.register_factory(

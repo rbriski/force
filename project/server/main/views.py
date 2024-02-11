@@ -12,3 +12,8 @@ def home():
 @main_blueprint.route("/about/")
 def about():
     return render_template("main/about.html")
+
+
+@main_blueprint.route("/healthz/")
+def healthz():
+    return "OK", 200

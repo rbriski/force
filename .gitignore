@@ -5,4 +5,3 @@ dev.db
 .DS_Store
 .vscode
 project/server/prod.db
-.kamal
