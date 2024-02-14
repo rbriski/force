@@ -7,7 +7,6 @@ import svcs
 from dotenv import load_dotenv
 from flask.cli import FlaskGroup
 from psycopg import Connection
-from pyairtable import Table
 
 from project.server import at, create_app
 from project.server.models import (
@@ -89,7 +88,7 @@ def people():
     conn = svcs.flask.get(Connection)
     cursor = conn.cursor()
 
-    parents = Table(at.api_key, at.base_id, at.tables["parents"])
+    parents = at.api.table(at.base_id, at.tables["parents"])
     for p in parents.all():
         f = p["fields"]
         if Person.exists_airtable(cursor, at_id=p["id"]):
@@ -106,7 +105,7 @@ def people():
         person.insert(cursor)
     conn.commit()
 
-    players = Table(at.api_key, at.base_id, at.tables["roster"])
+    players = at.api.table(at.base_id, at.tables["roster"])
     for p in players.all():
         f = p["fields"]
         if Person.exists_airtable(cursor, at_id=p["id"]):
@@ -142,7 +141,7 @@ def events():
     conn = svcs.flask.get(Connection)
     cursor = conn.cursor()
 
-    events = Table(at.api_key, at.base_id, at.tables["events"])
+    events = at.api.table(at.base_id, at.tables["events"])
     for p in events.all():
         f = p["fields"]
         if Event.exists_airtable(cursor, at_id=p["id"]):
@@ -168,7 +167,7 @@ def transactions():
     conn = svcs.flask.get(Connection)
     cursor = conn.cursor()
 
-    expenses = Table(at.api_key, at.base_id, at.tables["expenses"])
+    expenses = at.api.table(at.base_id, at.tables["expenses"])
     for p in expenses.all():
         f = p["fields"]
         if TransactionDB.exists_airtable(cursor, at_id=p["id"]):
@@ -190,7 +189,7 @@ def transactions():
         expense.insert(cursor)
     conn.commit()
 
-    payments = Table(at.api_key, at.base_id, at.tables["payments"])
+    payments = at.api.table(at.base_id, at.tables["payments"])
     for p in payments.all():
         f = p["fields"]
         if TransactionDB.exists_airtable(cursor, at_id=p["id"]):
@@ -212,7 +211,7 @@ def transactions():
         payment.insert(cursor)
     conn.commit()
 
-    roster = Table(at.api_key, at.base_id, at.tables["roster"])
+    roster = at.api.table(at.base_id, at.tables["roster"])
     for r in roster.all():
         if "Payments" in r["fields"]:
             player = Person.find_by_at_id(cursor, at_id=r["id"])
