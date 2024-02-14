@@ -1,11 +1,11 @@
 import os
 from dotenv import load_dotenv
-from pyairtable import Table
+from pyairtable import Table, Api
 
 
 load_dotenv()
 
-api_key = os.environ["AT_API_KEY"]
+api = Api(os.environ["AT_API_KEY"])
 
 base_id = os.environ["AT_BASE_ID"]
 tables = {
@@ -18,19 +18,19 @@ tables = {
 
 
 def get_roster_record(name):
-    roster_record: Table = Table(api_key, base_id, tables["roster"])
+    roster_record: Table = api.table(base_id, tables["roster"])
     for rec in roster_record.all():
         if rec["id"] == name:
             return rec
 
 
 def get_expenses(rec_id):
-    expenses = Table(api_key, base_id, tables["expenses"])
+    expenses = api.table(base_id, tables["expenses"])
     return [e for e in expenses.all() if rec_id in e["fields"]["Attendees"]]
 
 
 def get_payments(rec_id):
-    payments = Table(api_key, base_id, tables["payments"])
+    payments = api.table(base_id, tables["payments"])
     return [e for e in payments.all() if rec_id in e["fields"]["Attendees"]]
 
 
@@ -64,6 +64,6 @@ def get_ledger(expenses, payments):
 
 
 if __name__ == "__main__":
-    roster = Table(api_key, base_id, tables["roster"])
+    roster = api.table(base_id, tables["roster"])
     for r in roster.all():
         print(f"{r['fields']['Name']} : https://deanzaforce.club/{r['id']}")
