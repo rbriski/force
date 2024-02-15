@@ -1,19 +1,18 @@
 services:
   app:
-    platform: linux/amd64
     build: .
     container_name: force
     command: gunicorn manage:app --bind 0.0.0.0:80 --reload
     ports:
-      - 8080:80
+      - 8081:80
     depends_on:
-      db:
+      postgresql:
         condition: service_healthy
     env_file:
       - .env
     volumes:  
       - .:/app
-  db:
+  postgresql:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: "postgres"
@@ -26,6 +25,64 @@ services:
       test: ['CMD','true']
     expose:
       - 5432
+  elasticsearch:
+    container_name: temporal-elasticsearch
+    environment:
+      - cluster.routing.allocation.disk.threshold_enabled=true
+      - cluster.routing.allocation.disk.watermark.low=512mb
+      - cluster.routing.allocation.disk.watermark.high=256mb
+      - cluster.routing.allocation.disk.watermark.flood_stage=128mb
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms256m -Xmx256m
+      - xpack.security.enabled=false
+    image: elasticsearch:7.17.18
+    expose:
+      - 9200
+    volumes:
+      - /var/lib/elasticsearch/data
+  temporal:
+    container_name: temporal
+    depends_on:
+      - postgresql
+      - elasticsearch
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - SQL_HOST_NAME=db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PWD=postgres
+      - POSTGRES_SEEDS=postgresql
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+      - ENABLE_ES=true
+      - ES_SEEDS=elasticsearch
+      - ES_VERSION=v7
+    image: temporalio/auto-setup:${TEMPORAL_VERSION} # 1.22.4
+    ports:
+      - 7233:7233
+    labels:
+      kompose.volume.type: configMap
+    volumes:
+      - ./dynamicconfig:/etc/temporal/config/dynamicconfig
+  temporal-admin-tools:
+    container_name: temporal-admin-tools
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CLI_ADDRESS=temporal:7233
+    image: temporalio/admin-tools:${TEMPORAL_VERSION}
+    stdin_open: true
+    tty: true
+  temporal-ui:
+    container_name: temporal-ui
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    image: temporalio/ui:${TEMPORAL_UI_VERSION}
+    ports:
+      - 8080:8080
 volumes:
   db-data:
  
