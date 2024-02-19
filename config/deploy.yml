@@ -6,7 +6,7 @@ image: rbriski/force
 
 # Deploy to these servers.
 servers:
-  - 143.244.178.63
+  - &host 143.244.178.63
 
 labels:
   traefik.http.routers.force-app.rule: "Host(`deanzaforce.club`)"
@@ -26,7 +26,7 @@ registry:
 # Remember to run `kamal env push` after making changes!
 env:
   clear:
-    DB_HOST: 143.244.178.63
+    DB_HOST: *host
     AT_BASE_ID: appK55TripXu6J443
     AT_ROSTER: tblxFeLgJfC3OobXC
     AT_PARENTS: tblAelYcekjAKB7wg
@@ -61,7 +61,7 @@ env:
 accessories:
   db:
     image: postgres:16-alpine
-    host: 143.244.178.63
+    host: *host
     port: 5432
     env:
       clear:
@@ -70,12 +70,46 @@ accessories:
         - POSTGRES_PASSWORD
     volumes:
       - data:/var/lib/postgresql/data
-#   redis:
-#     image: redis:7.0
-#     host: 192.168.0.2
-#     port: 6379
-#     directories:
-#       - data:/data
+  elasticsearch:
+    image: elasticsearch:7.17.18
+    host: *host
+    env:
+      clear:
+        cluster.routing.allocation.disk.threshold_enabled: true
+        cluster.routing.allocation.disk.watermark.low: 512mb
+        cluster.routing.allocation.disk.watermark.high: 256mb
+        cluster.routing.allocation.disk.watermark.flood_stage: 128mb
+        discovery.type: single-node
+        ES_JAVA_OPTS: -Xms256m -Xmx256m
+        xpack.security.enabled: false
+    port: 9200
+    volumes:
+      - es-data:/var/lib/elasticsearch/data
+  temporal:
+    image: temporalio/auto-setup:1.22.4
+    depends_on:
+      - db
+      - elasticsearch
+    files:
+      # Will be placed to ${USER}/test-registry folder
+      # and mounted inside the container at the specified path
+      - ./config/development-sql.yaml:/etc/temporal/config/dynamicconfig/development-sql.yaml
+    env:
+      clear:
+        - DB: postgresql
+        - DB_PORT: 5432
+        - SQL_HOST_NAME: *host
+        - POSTGRES_USED: postgres
+        - POSTGRES_SEEDS: postgresql
+        - DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development-sql.yaml
+        - ENABLE_ES: true
+        - ES_SEEDS: elasticsearch
+        - ES_VERSION: v7
+      secret:
+        - POSTGRES_PWD
+    port: 7233
+    labels:
+      kompose.volume.type: configMap
 
 # Configure custom arguments for Traefik
 traefik:
