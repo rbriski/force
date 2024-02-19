@@ -1,9 +1,12 @@
 # manage.py
 import locale
+import flask
+from flask import current_app
 from datetime import datetime
-from pprint import pprint
+import asyncio
 
 import svcs
+from svcs.flask import svcs_from
 from dotenv import load_dotenv
 from flask.cli import FlaskGroup
 from psycopg import Connection
@@ -17,6 +20,10 @@ from project.server.models import (
     TransactionDB,
 )
 
+from temporalio.client import Client
+from temporalio.worker import Worker
+from project.workflows.email import SendEmailWorkflow, send_email, task_queue_name
+
 locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
 
 # logging.basicConfig()
@@ -24,8 +31,26 @@ locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
 
 
 load_dotenv()
+
 app = create_app()
 cli = FlaskGroup(create_app=create_app)
+
+
+@cli.command()
+def run_email_worker():
+
+    async def run_worker():
+        client = current_app.temporal_client
+
+        worker = Worker(
+            client,
+            task_queue=task_queue_name,
+            workflows=[SendEmailWorkflow],
+            activities=[send_email],
+        )
+        await worker.run()
+
+    asyncio.run(run_worker())
 
 
 # @cli.command()

@@ -1,5 +1,6 @@
 services:
   app:
+    platform: linux/amd64
     build: .
     container_name: force
     command: gunicorn manage:app --bind 0.0.0.0:80 --reload
@@ -10,6 +11,9 @@ services:
         condition: service_healthy
     env_file:
       - .env
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
     volumes:  
       - .:/app
   postgresql:

@@ -76,6 +76,21 @@ accessories:
     port: 6379
     volumes:
       - redis-data:/data
+  elasticsearch:
+    image: elasticsearch:7.17.18
+    host: 143.244.178.63
+    env:
+      clear:
+        cluster.routing.allocation.disk.threshold_enabled: true
+        cluster.routing.allocation.disk.watermark.low: 512mb
+        cluster.routing.allocation.disk.watermark.high: 256mb
+        cluster.routing.allocation.disk.watermark.flood_stage: 128mb
+        discovery.type: single-node
+        ES_JAVA_OPTS: -Xms256m -Xmx256m
+        xpack.security.enabled: false
+    port: 9200
+    volumes:
+      - es-data:/var/lib/elasticsearch/data
 
 # Configure custom arguments for Traefik
 traefik:

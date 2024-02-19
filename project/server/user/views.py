@@ -1,10 +1,13 @@
 # project/server/user/views.py
 
-from flask import Blueprint, abort, render_template
+from flask import Blueprint, abort, render_template, jsonify, make_response, current_app
 
 from project.server.models import Person
 import svcs
 from psycopg import Connection
+from temporalio.client import Client
+
+from project.workflows.email import SendEmailWorkflow, WorkflowOptions, task_queue_name
 
 user_blueprint = Blueprint("user", __name__)
 
@@ -35,3 +38,31 @@ def ledger(rec_id=None):
         balance=balance,
         ledger=ledger,
     )
+
+
+@user_blueprint.route("/subscribe/rec<rec_id>", methods=["GET"])
+async def start_subscription(rec_id=None):
+    client = current_app.temporal_client
+
+    conn = svcs.flask.get(Connection)
+    cursor = conn.cursor()
+
+    # Home page is a 404
+    if rec_id is None:
+        abort(404)
+
+    rec_id = "rec" + rec_id
+    player = Person.find_by_at_id(cursor, rec_id)
+
+    email: str = str(player.email)
+    data: WorkflowOptions = WorkflowOptions(email=email)
+    await client.start_workflow(
+        SendEmailWorkflow.run,
+        data,
+        id=data.email,
+        task_queue=task_queue_name,
+    )
+
+    message = jsonify({"message": "Resource created successfully"})
+    response = make_response(message, 201)
+    return response

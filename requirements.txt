@@ -1,5 +1,5 @@
 temporalio
-flask
+flask[async]
 flask-bcrypt
 requests
 pyairtable
@@ -13,3 +13,4 @@ zipp
 svcs
 psycopg[binary]
 pydantic
+asyncio
