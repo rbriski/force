@@ -6,7 +6,7 @@ image: rbriski/force
 
 # Deploy to these servers.
 servers:
-  - 143.244.178.63
+  - &host 143.244.178.63
 
 labels:
   traefik.http.routers.force-app.rule: "Host(`deanzaforce.club`)"
@@ -26,7 +26,7 @@ registry:
 # Remember to run `kamal env push` after making changes!
 env:
   clear:
-    DB_HOST: 143.244.178.63
+    DB_HOST: *host
     AT_BASE_ID: appK55TripXu6J443
     AT_ROSTER: tblxFeLgJfC3OobXC
     AT_PARENTS: tblAelYcekjAKB7wg
@@ -61,7 +61,7 @@ env:
 accessories:
   db:
     image: postgres:16-alpine
-    host: 143.244.178.63
+    host: *host
     port: 5432
     env:
       clear:
@@ -70,12 +70,70 @@ accessories:
         - POSTGRES_PASSWORD
     volumes:
       - data:/var/lib/postgresql/data
-#   redis:
-#     image: redis:7.0
-#     host: 192.168.0.2
-#     port: 6379
-#     directories:
-#       - data:/data
+  elasticsearch:
+    image: elasticsearch:7.17.18
+    host: *host
+    env:
+      clear:
+        cluster.routing.allocation.disk.threshold_enabled: true
+        cluster.routing.allocation.disk.watermark.low: 512mb
+        cluster.routing.allocation.disk.watermark.high: 256mb
+        cluster.routing.allocation.disk.watermark.flood_stage: 128mb
+        discovery.type: single-node
+        ES_JAVA_OPTS: -Xms256m -Xmx256m
+        xpack.security.enabled: false
+    port: 9200
+    volumes:
+      - es-data:/var/lib/elasticsearch/data
+  temporal:
+    image: temporalio/server:1.22.4
+    host: *host
+    depends_on:
+      - db
+      - elasticsearch
+    files:
+      - ./config/development-sql.yaml:/etc/temporal/config/dynamicconfig/development-sql.yaml
+      - ./config/docker.yaml:/etc/temporal/config/dynamicconfig/docker.yaml
+      - ./config/default.yaml:/etc/temporal/config/dynamicconfig/default.yaml
+    env:
+      clear:
+        AUTO_SETUP: true
+        TEMPORAL_ADDRESS: *host
+        DB: postgresql
+        DB_PORT: 5432
+        POSTGRES_USER: postgres
+        POSTGRES_SEEDS: *host
+        DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development-sql.yaml
+        ENABLE_ES: true
+        ES_SEEDS: *host
+        ES_VERSION: v7
+      secret:
+        - POSTGRES_PWD
+    port: 7233
+    labels:
+      kompose.volume.type: configMap
+  temporal-admin-tools:
+    host: *host
+    depends_on:
+      - temporal
+    env:
+      clear:
+        TEMPORAL_ADDRESS: &temporal_address 143.244.178.63:7233
+        TEMPORAL_CLI_ADDRESS: *temporal_address
+    image: temporalio/admin-tools:1.22.4
+    stdin_open: true
+    tty: true
+  temporal-ui:
+    host: *host
+    image: temporalio/ui:2.23.0
+    depends_on:
+      - temporal
+    env:
+      clear:
+        TEMPORAL_ADDRESS: *temporal_address
+        TEMPORAL_UI_PORT: 5050
+        TEMPORAL_CORS_ORIGINS: http://localhost:3000
+    port: 5050
 
 # Configure custom arguments for Traefik
 traefik:
