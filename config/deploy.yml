@@ -86,30 +86,54 @@ accessories:
     volumes:
       - es-data:/var/lib/elasticsearch/data
   temporal:
-    image: temporalio/auto-setup:1.22.4
+    image: temporalio/server:1.22.4
+    host: *host
     depends_on:
       - db
       - elasticsearch
     files:
-      # Will be placed to ${USER}/test-registry folder
-      # and mounted inside the container at the specified path
       - ./config/development-sql.yaml:/etc/temporal/config/dynamicconfig/development-sql.yaml
+      - ./config/docker.yaml:/etc/temporal/config/dynamicconfig/docker.yaml
+      - ./config/default.yaml:/etc/temporal/config/dynamicconfig/default.yaml
     env:
       clear:
-        - DB: postgresql
-        - DB_PORT: 5432
-        - SQL_HOST_NAME: *host
-        - POSTGRES_USED: postgres
-        - POSTGRES_SEEDS: postgresql
-        - DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development-sql.yaml
-        - ENABLE_ES: true
-        - ES_SEEDS: elasticsearch
-        - ES_VERSION: v7
+        AUTO_SETUP: true
+        TEMPORAL_ADDRESS: *host
+        DB: postgresql
+        DB_PORT: 5432
+        POSTGRES_USER: postgres
+        POSTGRES_SEEDS: *host
+        DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development-sql.yaml
+        ENABLE_ES: true
+        ES_SEEDS: *host
+        ES_VERSION: v7
       secret:
         - POSTGRES_PWD
     port: 7233
     labels:
       kompose.volume.type: configMap
+  temporal-admin-tools:
+    host: *host
+    depends_on:
+      - temporal
+    env:
+      clear:
+        TEMPORAL_ADDRESS: &temporal_address 143.244.178.63:7233
+        TEMPORAL_CLI_ADDRESS: *temporal_address
+    image: temporalio/admin-tools:1.22.4
+    stdin_open: true
+    tty: true
+  temporal-ui:
+    host: *host
+    image: temporalio/ui:2.23.0
+    depends_on:
+      - temporal
+    env:
+      clear:
+        TEMPORAL_ADDRESS: *temporal_address
+        TEMPORAL_UI_PORT: 5050
+        TEMPORAL_CORS_ORIGINS: http://localhost:3000
+    port: 5050
 
 # Configure custom arguments for Traefik
 traefik:
