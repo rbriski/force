@@ -1,5 +1,5 @@
 import datetime
-from typing import ClassVar
+from typing import ClassVar, Generator, Any
 from decimal import Decimal
 from uuid import uuid4, UUID
 
@@ -25,7 +25,7 @@ class AirtableMixin(ABC):
         return bool(cursor.fetchone()["exists"])
 
     @classmethod
-    def find_by_at_id(cls, cursor, at_id: str) -> "Person":
+    def find_by_at_id(cls, cursor, at_id: str) -> Any:
         cursor.execute(
             f"""
             SELECT *
@@ -112,7 +112,7 @@ class Transaction(TransactionDB):
     event: Event | None
 
     @classmethod
-    def collect_by_user_at_id(cls, person_at_id: str) -> list["Transaction"]:
+    def collect_by_user_at_id(cls, person_at_id: str):
         conn = svcs.flask.get(Connection)
         cursor = conn.cursor()
         cursor.execute(
@@ -208,7 +208,7 @@ class Person(Base, AirtableMixin):
     def transactions(self):
         yield from Transaction.collect_by_user_at_id(person_at_id=self.at_id)
 
-    def ledger(self, cursor):
+    def ledger(self):
         total = 0
         ordered_transactions = []
         for t in self.transactions():
@@ -218,7 +218,7 @@ class Person(Base, AirtableMixin):
 
         return ordered_transactions
 
-    def balance(self, cursor):
+    def balance(self):
         total = 0
         for t in self.transactions():
             total += t.amount_per_person

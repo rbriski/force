@@ -33,7 +33,6 @@ def create_app(script_info=None):
         temporal_address = (
             f"{os.environ['TEMPORAL_HOST']}:{os.environ['TEMPORAL_PORT']}"
         )
-        print(temporal_address)
         client = await Client.connect(temporal_address)
         app.temporal_client = client
 

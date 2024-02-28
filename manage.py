@@ -23,6 +23,11 @@ from project.server.models import (
 from temporalio.client import Client
 from temporalio.worker import Worker
 from project.workflows.email import SendEmailWorkflow, send_email, task_queue_name
+from project.workflows.invoice import (
+    SendInvoiceWorkflow,
+    send_invoice,
+    invoice_queue_name,
+)
 
 locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
 
@@ -47,6 +52,23 @@ def run_email_worker():
             task_queue=task_queue_name,
             workflows=[SendEmailWorkflow],
             activities=[send_email],
+        )
+        await worker.run()
+
+    asyncio.run(run_worker())
+
+
+@cli.command()
+def run_invoice_worker():
+
+    async def run_worker():
+        client = current_app.temporal_client
+
+        worker = Worker(
+            client,
+            task_queue=invoice_queue_name,
+            workflows=[SendInvoiceWorkflow],
+            activities=[send_invoice],
         )
         await worker.run()
 
