@@ -3,6 +3,7 @@ import locale
 from datetime import datetime
 from pprint import pprint
 
+import click
 import svcs
 from dotenv import load_dotenv
 from flask.cli import FlaskGroup
@@ -163,9 +164,14 @@ def events():
 
 
 @cli.command()
-def transactions():
+@click.option("--truncate", "-t", help="Truncate transaction tables", is_flag=True)
+def transactions(truncate):
     conn = svcs.flask.get(Connection)
     cursor = conn.cursor()
+
+    if truncate:
+        cursor.execute(f"TRUNCATE TABLE {PlayerTransactions.table_name} CASCADE")
+        cursor.execute(f"TRUNCATE TABLE {TransactionDB.table_name} CASCADE")
 
     expenses = at.api.table(at.base_id, at.tables["expenses"])
     for p in expenses.all():
