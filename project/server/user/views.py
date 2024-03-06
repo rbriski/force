@@ -32,9 +32,9 @@ def ledger(rec_id=None):
     if not player:
         abort(404)
 
-    ledger = player.ledger(cursor)
+    ledger = player.ledger()
     ledger.reverse()
-    balance = player.balance(cursor)
+    balance = player.balance()
 
     return render_template(
         "user/ledger.html",
@@ -75,9 +75,6 @@ def ledger(rec_id=None):
 @user_blueprint.route("/subscribe/rec<rec_id>", methods=["GET"])
 async def start_invoicing(rec_id=None):
     client = current_app.temporal_client
-
-    conn = svcs.flask.get(Connection)
-    cursor = conn.cursor()
 
     # Home page is a 404
     if rec_id is None:

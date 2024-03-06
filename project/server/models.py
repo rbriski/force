@@ -1,5 +1,5 @@
 import datetime
-from typing import ClassVar, Generator, Any
+from typing import ClassVar, Any
 from decimal import Decimal
 from uuid import uuid4, UUID
 
