@@ -219,8 +219,8 @@ def transactions(truncate):
 
     roster = at.api.table(at.base_id, at.tables["roster"])
     for r in roster.all():
+        player = Person.find_by_at_id(cursor, at_id=r["id"])
         if "Payments" in r["fields"]:
-            player = Person.find_by_at_id(cursor, at_id=r["id"])
             for payment_at_id in r["fields"]["Payments"]:
                 t = TransactionDB.find_by_at_id(cursor, at_id=payment_at_id)
                 cxn = PlayerTransactions(person_id=player.id, transaction_id=t.id)
