@@ -229,6 +229,7 @@ def transactions(truncate):
                     (cxn.id, cxn.person_id, cxn.transaction_id),
                 )
 
+        if "Expenses" in r["fields"]:
             for expense_at_id in r["fields"]["Expenses"]:
                 t = TransactionDB.find_by_at_id(cursor, at_id=expense_at_id)
                 cxn = PlayerTransactions(person_id=player.id, transaction_id=t.id)
