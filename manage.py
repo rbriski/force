@@ -5,6 +5,7 @@ from flask import current_app
 from datetime import datetime
 import asyncio
 
+import click
 import svcs
 from svcs.flask import svcs_from
 from dotenv import load_dotenv
@@ -210,9 +211,14 @@ def events():
 
 
 @cli.command()
-def transactions():
+@click.option("--truncate", "-t", help="Truncate transaction tables", is_flag=True)
+def transactions(truncate):
     conn = svcs.flask.get(Connection)
     cursor = conn.cursor()
+
+    if truncate:
+        cursor.execute(f"TRUNCATE TABLE {PlayerTransactions.table_name} CASCADE")
+        cursor.execute(f"TRUNCATE TABLE {TransactionDB.table_name} CASCADE")
 
     expenses = at.api.table(at.base_id, at.tables["expenses"])
     for p in expenses.all():
@@ -260,8 +266,8 @@ def transactions():
 
     roster = at.api.table(at.base_id, at.tables["roster"])
     for r in roster.all():
+        player = Person.find_by_at_id(cursor, at_id=r["id"])
         if "Payments" in r["fields"]:
-            player = Person.find_by_at_id(cursor, at_id=r["id"])
             for payment_at_id in r["fields"]["Payments"]:
                 t = TransactionDB.find_by_at_id(cursor, at_id=payment_at_id)
                 cxn = PlayerTransactions(person_id=player.id, transaction_id=t.id)
@@ -270,6 +276,7 @@ def transactions():
                     (cxn.id, cxn.person_id, cxn.transaction_id),
                 )
 
+        if "Expenses" in r["fields"]:
             for expense_at_id in r["fields"]["Expenses"]:
                 t = TransactionDB.find_by_at_id(cursor, at_id=expense_at_id)
                 cxn = PlayerTransactions(person_id=player.id, transaction_id=t.id)

@@ -41,7 +41,6 @@ env:
     - MAILGUN_API_KEY
     - SENDGRID_API_KEY
     - AT_API_KEY
-    - DATABASE_URL
     - POSTGRES_PASSWORD
 # Use a different ssh user than root
 # ssh:
