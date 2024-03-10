@@ -139,8 +139,8 @@ traefik:
   options:
     publish:
       - "443:443"
-    volume:
-      - /etc/traefik/acme/letsencrypt.json:/etc/traefik/acme/letsencrypt.json
+    volumes:
+      - acme:/etc/traefik/acme/
     memory: 500m
   args:
     accesslog: true

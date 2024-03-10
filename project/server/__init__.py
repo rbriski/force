@@ -1,18 +1,22 @@
 # project/server/__init__.py
+import asyncio
 import locale
 import math
 import os
 
 import arrow
-from flask import Flask, render_template
 import psycopg
-from psycopg.rows import dict_row
-from psycopg import Connection
-
 import svcs
+from flask import Flask, render_template
+from psycopg import Connection
+from psycopg.rows import dict_row
+from temporalio.client import Client
 
 
 def create_app(script_info=None):
+    TEMPORAL_ADDRESS = os.environ["TEMPORAL_ADDRESS"]
+    DATABASE_URL = f"postgresql://{os.environ['POSTGRES_USER']}:{os.environ['POSTGRES_PASSWORD']}@{os.environ['DB_HOST']}:5432/postgres?sslmode=disable"
+
     # instantiate the app
     app = Flask(
         __name__,
@@ -27,8 +31,14 @@ def create_app(script_info=None):
     app_settings = "project.server.config.Config"
     app.config.from_object(app_settings)
 
+    # Start temporal client
+    async def connect_temporal(app):
+        client = await Client.connect(TEMPORAL_ADDRESS)
+        app.temporal_client = client
+
+    asyncio.run(connect_temporal(app))
+
     def connection_factory():
-        DATABASE_URL = f"postgresql://{os.environ['POSTGRES_USER']}:{os.environ['POSTGRES_PASSWORD']}@{os.environ['DB_HOST']}:5432/postgres?sslmode=disable"
         with psycopg.connect(DATABASE_URL, row_factory=dict_row) as conn:
             yield conn
 
