@@ -205,6 +205,24 @@ class Person(Base, AirtableMixin):
             ),
         )
 
+    def parents(self):
+        results = []
+
+        conn = svcs.flask.get(Connection)
+        cursor = conn.cursor()
+        cursor.execute(
+            f"""select *
+            from {self.table_name} parent
+            join {PlayerParent.table_name} mpp on parent.id = mpp.parent_id
+            where mpp.player_id = %s;""",
+            [self.id],
+        )
+        for vals in cursor:
+            p = self.__class__(**vals)
+            results.append(p)
+
+        return results
+
     def transactions(self):
         yield from Transaction.collect_by_user_at_id(person_at_id=self.at_id)
 
