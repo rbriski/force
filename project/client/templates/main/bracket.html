@@ -1,0 +1,154 @@
+{% extends "_base.html" %}
+{% block content %}
+
+<section class="bg-gray-50 dark:bg-gray-900 p-3 sm:p-5">
+    <div class="mx-auto max-w-screen-xl px-4 lg:px-12">
+        <!-- Start coding here -->
+        <div class="text-center">
+            <h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl md:text-4xl">Join the Force March
+                Madness
+                Bracket Challenge!
+            </h1>
+        </div>
+    </div>
+</section>
+
+<section class="bg-gray-50 dark:bg-gray-900 p-3 sm:p-5">
+    <div class="mx-auto max-w-screen-xl px-4 lg:px-12">
+        <!-- Start coding here -->
+        <div class="bg-white dark:bg-gray-800 relative shadow-md sm:rounded-lg overflow-hidden p-4">
+
+            <p class="mb-4">Thank you for your interest in joining our March Madness Bracket Challenge! We're thrilled
+                to
+                have
+                you participate in this exciting event, where competition meets charity. Below, you'll find all the
+                details
+                you
+                need to get started, from signing up to making your picks, and, of course, the charitable aspect of our
+                challenge if you're into that sort of thing.</p>
+
+            <h2 class="text-lg font-semibold mb-2">Step 1: Registration and Bracket Creation</h2>
+            <p class="mb-4">First, if you haven't already, please create your bracket on Yahoo! Fantasy by following
+                this
+                link:
+                <a href="https://tournament.fantasysports.yahoo.com/mens-basketball-bracket/group/26512/invitation?key=9c9b24e7e5f54af4"
+                    class="text-blue-500 underline">Yahoo! Fantasy League</a>. Make sure to note
+                down
+                your
+                bracket name or ID as you'll need it for the registration form.
+            </p>
+
+            <h2 class="text-lg font-semibold mb-2">Step 2: Filling Out the Registration Form</h2>
+            <p class="mb-4">Once you have your bracket set up, please fill out our registration form here: <a href="#"
+                    class="text-blue-500 underline">Insert Registration Form Link</a>. In this form, you'll need to
+                provide
+                your
+                name, email, Yahoo! Fantasy bracket name/ID, and confirm the number of brackets you're entering. This is
+                crucial
+                for ensuring your entry is correctly recorded and matched with your payment.</p>
+
+            <h2 class="text-lg font-semibold mb-2">Step 3: Payment</h2>
+            <p class="mb-4">The entry fee is $50 for one bracket or $100 for three brackets. Please send your payment
+                via
+                <strong>[Preferred Payment Platform]</strong> to <strong>[Your Payment Information]</strong>. In the
+                payment
+                description or note, kindly include "March Madness - [Your Email] - [Bracket IDs]" to help us match your
+                payment
+                to your bracket(s) seamlessly.
+            </p>
+
+            <h2 class="text-lg font-semibold mb-2">Step 4: Confirmation</h2>
+            <p class="mb-4">After we receive both your completed registration form and payment, we'll send you a
+                confirmation
+                email. This email will confirm your participation, payment, and provide you with any additional
+                information
+                needed as we approach the tournament start.</p>
+
+            <h2 class="text-lg font-semibold mb-2">Our Charity Goal</h2>
+            <p class="mb-4">This year, we're excited to announce that 60% of all proceeds will be donated to
+                <strong>DeAnza Force</strong>, supporting <strong>the 2010G ECNL team</strong>. Not only does your
+                participation offer
+                a
+                chance
+                to win great prizes, but it also contributes to a fantastic cause.
+            </p>
+
+            <h2 class="text-lg font-semibold mb-2">Prize Pool Distribution</h2>
+            <p class="mb-4">We are committed to a rewarding experience for our participants while supporting our chosen
+                charitable cause. The prize pool will be allocated as follows:</p>
+            <ul class="list-disc pl-5 mb-4">
+                <li><strong>1st Place:</strong> 50% of the prize pool. The champion takes home half the pot for their
+                    superior bracket predictions and an all-encompassing smugness that will last you all year long.</li>
+                <li><strong>2nd Place:</strong> 30% of the prize pool. A deserving prize for the runner-up in our
+                    competition and a deservingly smaller amount for the first loser.</li>
+                <li><strong>3rd Place:</strong> 10% of the prize pool. Recognition and reward for making it to the top
+                    three and bragging rights ... I guess?</li>
+                <li><strong>Best Upset Pick:</strong> 10% of the prize pool. This special category rewards the
+                    participant who successfully predicts the upset with the maximum seed differential. In the event of
+                    a tie, the next biggest upset pick will serve as the tiebreaker. <strong>Obviously, this is the true
+                        winner
+                        of the event. Anyone can ape the seeded rankings, picking an upset take true panache.</strong>
+                </li>
+            </ul>
+
+
+            <p class="mb-4">Thank you for supporting our team. We're looking forward to a fantastic tournament and
+                can't wait to see your picks!</p>
+
+        </div>
+    </div>
+</section>
+
+<section class="p-3 sm:p-5">
+    <div class="mx-auto max-w-screen-xl px-4 lg:px-12">
+        <div class="bg-white dark:bg-gray-800 relative shadow-md sm:rounded-lg overflow-hidden p-5">
+            <form id="bracketForm" action="/bracket/submit" method="POST" class="space-y-4">
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+                    <input type="text" id="name" name="name" required
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                    <input type="email" id="email" name="email" required
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div id="bracketFields">
+                    <label class="block text-sm font-medium text-gray-700">Bracket ID #1</label>
+                    <input type="text" name="bracketID[]" required
+                        class="bracketIDInput mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <button type="button" id="addMoreBrackets"
+                    class="mt-2 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-500 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Add
+                    More Brackets</button>
+                <div>
+                    <button type="submit"
+                        class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Submit
+                        & Pay</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<script>
+    document.getElementById('addMoreBrackets').addEventListener('click', function () {
+        const currentNumberOfBrackets = document.querySelectorAll('.bracketIDInput').length;
+        if (currentNumberOfBrackets < 10) {
+            const newInput = document.createElement('input');
+            newInput.setAttribute('type', 'text');
+            newInput.setAttribute('name', 'bracketID[]');
+            newInput.setAttribute('required', true);
+            newInput.classList.add('bracketIDInput', 'mt-1', 'block', 'w-full', 'px-3', 'py-2', 'bg-white', 'border', 'border-gray-300', 'rounded-md', 'shadow-sm', 'focus:outline-none', 'focus:ring-indigo-500', 'focus:border-indigo-500');
+
+            const newLabel = document.createElement('label');
+            newLabel.classList.add('block', 'text-sm', 'font-medium', 'text-gray-700');
+            newLabel.textContent = `Bracket ID #${currentNumberOfBrackets + 1}`;
+
+            const bracketFieldsDiv = document.getElementById('bracketFields');
+            bracketFieldsDiv.appendChild(newLabel);
+            bracketFieldsDiv.appendChild(newInput);
+        }
+    });
+</script>
+{% endblock %}

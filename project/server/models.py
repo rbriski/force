@@ -44,6 +44,29 @@ class Base(BaseModel):
     updated_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
 
 
+class Bracket(Base):
+    table_name: ClassVar[str] = "brackets"
+
+    name: str
+    email: str | None
+    bracket_ids: str | None
+
+    def insert(self):
+        conn = svcs.flask.get(Connection)
+        cursor = conn.cursor()
+        cursor.execute(
+            f"""INSERT INTO {self.table_name} (id, created_at, updated_at, name, email, bracket_ids) VALUES (%s, %s, %s, %s, %s, %s)""",
+            (
+                self.id,
+                self.created_at,
+                self.updated_at,
+                self.name,
+                self.email,
+                self.bracket_ids,
+            ),
+        )
+
+
 class PlayerParent(Base):
     table_name: ClassVar[str] = "m_player_parent"
 
