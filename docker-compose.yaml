@@ -7,13 +7,15 @@ services:
     ports:
       - 8080:80
     depends_on:
-      db:
-        condition: service_healthy
+      - postgresql
     env_file:
       - .env
-    volumes:  
+    environment:
+      TEMPORAL_ADDRESS: "temporal:7233" 
+      DB_HOST: "postgresql"
+    volumes:
       - .:/app
-  db:
+  postgresql:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: "postgres"
@@ -28,4 +30,3 @@ services:
       - 5432
 volumes:
   db-data:
- 
