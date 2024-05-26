@@ -1,5 +1,5 @@
 # project/server/main/views.py
-from flask import Blueprint, render_template, request, redirect
+from flask import Blueprint, render_template, request, redirect, Response
 import urllib
 
 from project.server.models import Bracket
@@ -15,6 +15,19 @@ def home():
 @main_blueprint.route("/about/")
 def about():
     return render_template("main/about.html")
+
+
+@main_blueprint.route("/verify/", methods=["POST"])
+def inbound():
+    """
+    Inbound POST from Slack to test token
+    """
+    # When Slack sends a POST to your app, it will send a JSON payload:
+    payload = request.get_json()
+
+    # This response will only be used for the initial URL validation:
+    if payload:
+        return Response(payload["challenge"]), 200
 
 
 @main_blueprint.route("/bracket/")
