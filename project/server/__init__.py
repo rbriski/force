@@ -4,10 +4,15 @@ import math
 import os
 
 import arrow
-from flask import Flask, render_template
+from flask import Flask, render_template, request, Response
 import psycopg
 from psycopg.rows import dict_row
 from psycopg import Connection
+
+from pprint import pprint
+
+from slack_bolt import App
+from slack_bolt.adapter.flask import SlackRequestHandler
 
 import svcs
 
@@ -41,6 +46,28 @@ def create_app(script_info=None):
         on_registry_close=lambda conn: conn.close(),
     )
 
+    # Register slack middleware
+    slack = App(
+        token=os.environ.get("SLACK_BOT_TOKEN"),
+        signing_secret=os.environ.get("SLACK_SIGNING_SECRET"),
+    )
+
+    @slack.middleware  # or app.use(log_request)
+    def log_request(logger, body, next):
+        logger.debug(body)
+        return next()
+
+    @slack.event("app_mention")
+    def event_test(body, say, logger):
+        logger.info(body)
+        say("Hey there! I'm totally inconsequential.  No one should worry about me.")
+
+    @slack.event("message")
+    def handle_message(body, say, logger):
+        say("_Nothing to see here_")
+
+    handler = SlackRequestHandler(slack)
+
     # register blueprints
     from project.server.main.views import main_blueprint
     from project.server.user.views import user_blueprint
@@ -50,6 +77,10 @@ def create_app(script_info=None):
 
     # flask login
     # from project.server.models import User
+
+    @app.route("/slack/events", methods=["POST"])
+    def slack_events():
+        return handler.handle(request)
 
     # error handlers
     @app.errorhandler(401)

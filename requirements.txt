@@ -1,4 +1,5 @@
 flask
+slack_bolt
 flask-bcrypt
 requests
 pyairtable
