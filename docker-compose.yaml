@@ -1,20 +1,20 @@
 services:
-  app:
-    platform: linux/amd64
-    build: .
-    container_name: force
-    command: gunicorn manage:app --bind 0.0.0.0:80 --reload
-    ports:
-      - 8080:80
-    depends_on:
-      - postgresql
-    env_file:
-      - .env
-    environment:
-      TEMPORAL_ADDRESS: "temporal:7233" 
-      DB_HOST: "postgresql"
-    volumes:
-      - .:/app
+  # app:
+  #   platform: linux/amd64
+  #   build: .
+  #   container_name: force
+  #   command: gunicorn manage:app --bind 0.0.0.0:80 --reload
+  #   ports:
+  #     - 8080:80
+  #   depends_on:
+  #     - postgresql
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     TEMPORAL_ADDRESS: "temporal:7233" 
+  #     DB_HOST: "postgresql"
+  #   volumes:
+  #     - .:/app
   postgresql:
     image: postgres:16-alpine
     environment:
