@@ -8,8 +8,6 @@ image: rbriski/force
 servers:
   - &host 143.244.178.63
 
-require_destination: true
-
 labels:
   traefik.http.routers.force-app.rule: "Host(`deanzaforce.club`)"
   traefik.http.routers.force-app.tls: true
