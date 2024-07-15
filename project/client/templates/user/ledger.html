@@ -9,13 +9,16 @@
                 <span class="block xl:inline">Balance: {{ balance | round_currency_up | currency }}</span>
             </h1>
             {% if balance < -0.01 %} <div class="mt-5 sm:mt-8 justify-center">
+                <div class="mb-5 text-gray-700 dark:text-gray-300">
+                    A negative balance means you owe money. Please make a payment to settle your balance.
+                </div>
                 <div class="rounded-md shadow">
                     <a href="https://www.paypal.com/paypalme/Force2010G/{{ balance  | round_currency_up | abs }}"
                         class="flex w-full items-center justify-center rounded-md border border-transparent bg-indigo-600 px-8 py-3 text-base font-medium text-white hover:bg-indigo-700 md:py-4 md:px-10 md:text-lg">Pay
                     </a>
                 </div>
         </div>
-        {% else %}
+        {% elif balance > 0.01 %}
         <div>You are owed this amount.</div>
         {% endif %}
     </div>
