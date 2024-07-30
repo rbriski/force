@@ -35,6 +35,23 @@ class AirtableMixin(ABC):
             (at_id,),
         )
         vals = cursor.fetchone()
+        if not vals:
+            return None
+        return cls(**vals)
+
+    @classmethod
+    def find_by_slack_id(cls, cursor, slack_id: str) -> "Person":
+        cursor.execute(
+            f"""
+            SELECT *
+            FROM {cls.table_name}
+            WHERE slack_id = %s
+            """,
+            (slack_id,),
+        )
+        vals = cursor.fetchone()
+        if not vals:
+            return None
         return cls(**vals)
 
 
@@ -135,9 +152,7 @@ class Transaction(TransactionDB):
     event: Event | None
 
     @classmethod
-    def collect_by_user_at_id(cls, person_at_id: str) -> list["Transaction"]:
-        conn = svcs.flask.get(Connection)
-        cursor = conn.cursor()
+    def collect_by_user_at_id(cls, cursor, person_at_id: str) -> list["Transaction"]:
         cursor.execute(
             f"""with user_transactions as (
             select *
@@ -212,10 +227,11 @@ class Person(Base, AirtableMixin):
     description: str | None
     email: str | None
     phone: str | None
+    slack_id: str | None
 
     def insert(self, cursor):
         cursor.execute(
-            f"""INSERT INTO {self.table_name} (id, at_id, created_at, updated_at, description, name, email, phone) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+            f"""INSERT INTO {self.table_name} (id, at_id, created_at, updated_at, description, name, email, phone, slack_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (
                 self.id,
                 self.at_id,
@@ -225,16 +241,29 @@ class Person(Base, AirtableMixin):
                 self.name,
                 self.email,
                 self.phone,
+                self.slack_id,
             ),
         )
 
-    def transactions(self):
-        yield from Transaction.collect_by_user_at_id(person_at_id=self.at_id)
+    def player(self, cursor):
+        cursor.execute(
+            f"""select * from {self.table_name} p join {PlayerParent.table_name} mpp on p.id=mpp.player_id  where mpp.parent_id=%s""",
+            (self.id,),
+        )
+
+        player = cursor.fetchone()
+        if not player:
+            return None
+
+        return Person(**player)
+
+    def transactions(self, cursor):
+        yield from Transaction.collect_by_user_at_id(cursor, person_at_id=self.at_id)
 
     def ledger(self, cursor):
         total = 0
         ordered_transactions = []
-        for t in self.transactions():
+        for t in self.transactions(cursor=cursor):
             total += t.amount_per_person
             ot = OrderedTransaction(total=total, transaction=t)
             ordered_transactions.append(ot)
@@ -243,7 +272,7 @@ class Person(Base, AirtableMixin):
 
     def balance(self, cursor):
         total = 0
-        for t in self.transactions():
+        for t in self.transactions(cursor=cursor):
             total += t.amount_per_person
 
         value = Decimal(total)

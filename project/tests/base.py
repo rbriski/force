@@ -3,8 +3,9 @@
 
 from flask_testing import TestCase
 
-from project.server import db, create_app
-from project.server.models import User
+from project.models import db
+from project.server import create_app
+from project.models.db import User
 
 app = create_app()
 

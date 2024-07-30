@@ -2,7 +2,7 @@
 from flask import Blueprint, render_template, request, redirect, Response
 import urllib
 
-from project.server.models import Bracket
+from project.models.db import Bracket
 
 main_blueprint = Blueprint("main", __name__)
 

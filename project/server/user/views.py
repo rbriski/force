@@ -2,7 +2,7 @@
 
 from flask import Blueprint, abort, render_template
 
-from project.server.models import Person
+from project.models.db import Person
 import svcs
 from psycopg import Connection
 

@@ -10,7 +10,7 @@ from flask.cli import FlaskGroup
 from psycopg import Connection
 
 from project.server import at, create_app
-from project.server.models import (
+from project.models.db import (
     Event,
     Person,
     PlayerParent,
@@ -62,6 +62,7 @@ cli = FlaskGroup(create_app=create_app)
 #             for rent in p.parents:
 #                 print(rent.name)
 
+
 #                 # continue
 #                 requests.post(
 #                     "https://api.mailgun.net/v3/m.deanzaforce.club/messages",
@@ -82,6 +83,17 @@ cli = FlaskGroup(create_app=create_app)
 #                         ),
 #                     },
 #                 )
+@cli.command()
+def cleardb():
+    conn = svcs.flask.get(Connection)
+    cursor = conn.cursor()
+
+    cursor.execute("TRUNCATE TABLE people CASCADE")
+    cursor.execute("TRUNCATE TABLE m_people_transactions CASCADE")
+    cursor.execute("TRUNCATE TABLE m_player_parent CASCADE")
+    cursor.execute("TRUNCATE TABLE events CASCADE")
+    cursor.execute("TRUNCATE TABLE transactions CASCADE")
+    conn.commit()
 
 
 @cli.command()
@@ -102,6 +114,7 @@ def people():
             name=f["Name"],
             email=f.get("Email"),
             phone=f.get("Phone"),
+            slack_id=f.get("Slack"),
         )
         person.insert(cursor)
     conn.commit()
@@ -119,6 +132,7 @@ def people():
             name=f["Name"],
             email=f.get("Email"),
             phone=f.get("Phone"),
+            slack_id=None,
         )
         person.insert(cursor)
     conn.commit()
