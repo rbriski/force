@@ -229,6 +229,17 @@ class Person(Base, AirtableMixin):
     phone: str | None
     slack_id: str | None
 
+    @classmethod
+    def all_players(cls, cursor):
+        cursor.execute(
+            f"""select * from {cls.table_name} where id in (select player_id from {PlayerParent.table_name} group by 1)"""
+        )
+        players = []
+        for player in cursor.fetchall():
+            players.append(Person(**player))
+
+        return players
+
     def insert(self, cursor):
         cursor.execute(
             f"""INSERT INTO {self.table_name} (id, at_id, created_at, updated_at, description, name, email, phone, slack_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
@@ -256,6 +267,18 @@ class Person(Base, AirtableMixin):
             return None
 
         return Person(**player)
+
+    def parents(self, cursor):
+        cursor.execute(
+            f"""select * from {self.table_name} p join {PlayerParent.table_name} mpp on p.id=mpp.parent_id where mpp.player_id=%s""",
+            (self.id,),
+        )
+
+        parents = []
+        for parent in cursor.fetchall():
+            parents.append(Person(**parent))
+
+        return parents
 
     def transactions(self, cursor):
         yield from Transaction.collect_by_user_at_id(cursor, person_at_id=self.at_id)

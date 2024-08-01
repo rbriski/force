@@ -1,5 +1,6 @@
 # manage.py
 import locale
+import os
 from datetime import datetime
 from pprint import pprint
 
@@ -8,8 +9,8 @@ import svcs
 from dotenv import load_dotenv
 from flask.cli import FlaskGroup
 from psycopg import Connection
+from slack_bolt import App
 
-from project.server import at, create_app
 from project.models.db import (
     Event,
     Person,
@@ -17,6 +18,7 @@ from project.models.db import (
     PlayerTransactions,
     TransactionDB,
 )
+from project.server import at, create_app
 
 locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
 
@@ -27,6 +29,11 @@ locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
 load_dotenv()
 app = create_app()
 cli = FlaskGroup(create_app=create_app)
+
+slack = App(
+    token=os.environ.get("SLACK_BOT_TOKEN"),
+    signing_secret=os.environ.get("SLACK_SIGNING_SECRET"),
+)
 
 
 # @cli.command()
@@ -94,6 +101,60 @@ def cleardb():
     cursor.execute("TRUNCATE TABLE events CASCADE")
     cursor.execute("TRUNCATE TABLE transactions CASCADE")
     conn.commit()
+
+
+def send_message(cursor, player):
+    at_id = player.at_id
+    b = player.balance(cursor)
+
+    for parent in player.parents(cursor):
+        slack_id = parent.slack_id
+        if not slack_id:
+            continue
+        print(f"Sending message to {player.name} parent: ({parent.name}) for ${b*-1}")
+
+        conv = slack.client.conversations_open(users=slack_id)
+
+        msg = f"Hello, {parent.name}!  You owe *${b*-1}*.  Details at the Ledger :  https://deanzaforce.club/{at_id}  Pay at : https://www.paypal.com/paypalme/Force2010G/{b*-1}."
+        blocks = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"Hello, {parent.name}!  You owe *${b*-1}*.",
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"Details at the Ledger :  https://deanzaforce.club/{at_id}",
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"Pay at : https://www.paypal.com/paypalme/Force2010G/{b*-1}.",
+                },
+            },
+        ]
+        slack.client.chat_postMessage(
+            channel=conv["channel"]["id"],
+            text=msg,
+            blocks=blocks,
+        )
+
+
+@cli.command()
+def invoice():
+    conn = svcs.flask.get(Connection)
+    cursor = conn.cursor()
+
+    for p in Person.all_players(cursor):
+        b = p.balance(cursor)
+        if b < 0:
+            send_message(cursor, p)
 
 
 @cli.command()
