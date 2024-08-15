@@ -1,8 +1,6 @@
 import os
 from pprint import pprint
 from flask import Blueprint, request
-import svcs
-from psycopg import Connection
 from slack_bolt import App
 from slack_bolt.adapter.flask import SlackRequestHandler
 
@@ -95,7 +93,7 @@ def app_home(client, event, context):
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": f"Hello, {parent.name}!  You're carrying a credit of *${balance * -1}*.",
+                            "text": f"Hello, {parent.name}!  You're carrying a credit of *${balance}*.",
                         },
                     },
                 ]
