@@ -2,13 +2,14 @@
 import locale
 import os
 from datetime import datetime
-from pprint import pprint
 
+import boto3
 import click
 import svcs
 from dotenv import load_dotenv
 from flask.cli import FlaskGroup
 from psycopg import Connection
+from rich import print
 from slack_bolt import App
 
 from project.models.db import (
@@ -17,7 +18,9 @@ from project.models.db import (
     PlayerParent,
     PlayerTransactions,
     TransactionDB,
+    VendorPayment,
 )
+from project.models.email import Email
 from project.server import at, create_app
 
 locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
@@ -36,60 +39,6 @@ slack = App(
 )
 
 
-# @cli.command()
-# def test():
-#     """Runs the unit tests without test coverage."""
-#     tests = unittest.TestLoader().discover("project/tests", pattern="test*.py")
-#     result = unittest.TextTestRunner(verbosity=2).run(tests)
-#     if result.wasSuccessful():
-#         sys.exit(0)
-#     else:
-#         sys.exit(1)
-
-
-# @cli.command()
-# def flake():
-#     """Runs flake8 on the project."""
-#     subprocess.run(["flake8", "project"])
-
-
-# @cli.command()
-# def invoice():
-#     """Send invoices to parents"""
-#     """python manage.py invoice"""
-#     for p in Person.query.all():
-#         bal = p.balance()
-#         if bal < -500:
-#             if p.name != "Ayla Briski":
-#                 continue
-#             print(p.name)
-#             print(p.balance())
-#             print("\n--\n")
-
-#             for rent in p.parents:
-#                 print(rent.name)
-
-
-#                 # continue
-#                 requests.post(
-#                     "https://api.mailgun.net/v3/m.deanzaforce.club/messages",
-#                     auth=("api", os.environ["MAILGUN_API_KEY"]),
-#                     data={
-#                         "from": "DeAnza 2010G - Bob Briski <postmaster@m.deanzaforce.club>",
-#                         "to": rent.name + " <" + rent.email + ">",
-#                         "h:Reply-To": "Bob Briski <rbriski+force@gmail.com>",
-#                         "subject": "2010G Force : 2023 ECNL Showcase Fees",
-#                         "template": "force-payment-request",
-#                         "h:X-Mailgun-Variables": json.dumps(
-#                             {
-#                                 "player_name": p.name,
-#                                 "parent_name": rent.name,
-#                                 "amount": str(p.balance() * -1),
-#                                 "ledger_link": "https://deanzaforce.club/" + p.at_id,
-#                             }
-#                         ),
-#                     },
-#                 )
 @cli.command()
 def cleardb():
     conn = svcs.flask.get(Connection)
@@ -147,6 +96,47 @@ def send_message(cursor, player):
 
 
 @cli.command()
+def getemail():
+    conn = svcs.flask.get(Connection)
+    conn.set_autocommit(True)
+    cursor = conn.cursor()
+    s3 = boto3.client(
+        "s3",
+        aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
+        aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
+        region_name="us-east-1",
+    )
+    emls = Email.all(bucket="bob.briski", prefix="", s3_client=s3)
+    for e in emls:
+        try:
+            msg = e.get_content()
+            res = e.parse(msg)
+            vp = VendorPayment(
+                vendor_name="paypal",
+                amount=res["amount"],
+                transaction_date=res["transaction_date"],
+                vendor_txn_id=res["transaction_id"],
+                sender=res["sender"],
+            )
+            vp.insert(cursor)
+            print(res)
+        except Exception as e:
+            print("Could not parse email")
+            print(e)
+
+
+@cli.command()
+def getplayer():
+    conn = svcs.flask.get(Connection)
+    cursor = conn.cursor()
+
+    p = Person.find_by_paypal_name(cursor, "Marco Marini")
+    player = p.player(cursor)
+    for pt in player.payments(cursor):
+        print(pt)
+
+
+@cli.command()
 def invoice():
     conn = svcs.flask.get(Connection)
     cursor = conn.cursor()
@@ -176,6 +166,8 @@ def people():
             email=f.get("Email"),
             phone=f.get("Phone"),
             slack_id=f.get("Slack"),
+            paypal_name=f.get("Paypal"),
+            venmo_name=f.get("Venmo"),
         )
         person.insert(cursor)
     conn.commit()
@@ -194,6 +186,8 @@ def people():
             email=f.get("Email"),
             phone=f.get("Phone"),
             slack_id=None,
+            paypal_name=f.get("Paypal"),
+            venmo_name=f.get("Venmo"),
         )
         person.insert(cursor)
     conn.commit()

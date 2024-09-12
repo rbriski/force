@@ -5,3 +5,4 @@ dev.db
 .DS_Store
 .vscode
 project/server/prod.db
+email_downloads

@@ -1,12 +1,13 @@
 import datetime
-from typing import ClassVar
-from decimal import Decimal
-from uuid import uuid4, UUID
-
-from pydantic import BaseModel, Field
+import re
 from abc import ABC
+from decimal import Decimal
+from typing import ClassVar, Generator
+from uuid import UUID, uuid4
+
 import svcs
 from psycopg import Connection
+from pydantic import BaseModel, Field, validator
 
 
 class AirtableMixin(ABC):
@@ -25,7 +26,7 @@ class AirtableMixin(ABC):
         return bool(cursor.fetchone()["exists"])
 
     @classmethod
-    def find_by_at_id(cls, cursor, at_id: str) -> "Person":
+    def find_by_at_id(cls, cursor, at_id: str) -> "BaseModel":
         cursor.execute(
             f"""
             SELECT *
@@ -33,21 +34,6 @@ class AirtableMixin(ABC):
             WHERE at_id = %s
             """,
             (at_id,),
-        )
-        vals = cursor.fetchone()
-        if not vals:
-            return None
-        return cls(**vals)
-
-    @classmethod
-    def find_by_slack_id(cls, cursor, slack_id: str) -> "Person":
-        cursor.execute(
-            f"""
-            SELECT *
-            FROM {cls.table_name}
-            WHERE slack_id = %s
-            """,
-            (slack_id,),
         )
         vals = cursor.fetchone()
         if not vals:
@@ -152,7 +138,9 @@ class Transaction(TransactionDB):
     event: Event | None
 
     @classmethod
-    def collect_by_user_at_id(cls, cursor, person_at_id: str) -> list["Transaction"]:
+    def collect_by_user_at_id(
+        cls, cursor, person_at_id: str
+    ) -> Generator["Transaction", None, None]:
         cursor.execute(
             f"""with user_transactions as (
             select *
@@ -219,6 +207,45 @@ class Transaction(TransactionDB):
             yield t
 
 
+class VendorPayment(Base, AirtableMixin):
+    table_name: ClassVar[str] = "vendor_payments"
+
+    transaction_id: UUID | None = None
+    amount: float
+    vendor_txn_id: str
+    vendor_name: str
+    sender: str
+    transaction_date: datetime.date
+
+    @validator("transaction_date", pre=True)
+    def parse_transaction_date(cls, value):
+        if isinstance(value, str):
+            return datetime.datetime.strptime(value, "%B %d, %Y").date()
+        return value
+
+    @validator("amount", pre=True)
+    def parse_amount(cls, value):
+        if isinstance(value, str):
+            # Remove currency symbol and 'USD', then convert to float
+            return float(re.sub(r"[^\d.]", "", value))
+        return value
+
+    def insert(self, cursor):
+        cursor.execute(
+            f"""INSERT INTO {self.table_name} (id, created_at, updated_at, amount, vendor_txn_id, vendor_name, sender, transaction_date) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+            (
+                self.id,
+                self.created_at,
+                self.updated_at,
+                self.amount,
+                self.vendor_txn_id,
+                self.vendor_name,
+                self.sender,
+                self.transaction_date,
+            ),
+        )
+
+
 class Person(Base, AirtableMixin):
     table_name: ClassVar[str] = "people"
 
@@ -228,6 +255,8 @@ class Person(Base, AirtableMixin):
     email: str | None
     phone: str | None
     slack_id: str | None
+    paypal_name: str | None
+    venmo_name: str | None
 
     @classmethod
     def all_players(cls, cursor):
@@ -240,9 +269,39 @@ class Person(Base, AirtableMixin):
 
         return players
 
+    @classmethod
+    def find_by_slack_id(cls, cursor, slack_id: str) -> "Person":
+        cursor.execute(
+            f"""
+            SELECT *
+            FROM {cls.table_name}
+            WHERE slack_id = %s
+            """,
+            (slack_id,),
+        )
+        vals = cursor.fetchone()
+        if not vals:
+            return None
+        return cls(**vals)
+
+    @classmethod
+    def find_by_paypal_name(cls, cursor, paypal_name: str) -> "Person":
+        cursor.execute(
+            f"""
+            SELECT *
+            FROM {cls.table_name}
+            WHERE COALESCE(paypal_name, name) = %s
+            """,
+            (paypal_name,),
+        )
+        vals = cursor.fetchone()
+        if not vals:
+            return None
+        return cls(**vals)
+
     def insert(self, cursor):
         cursor.execute(
-            f"""INSERT INTO {self.table_name} (id, at_id, created_at, updated_at, description, name, email, phone, slack_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+            f"""INSERT INTO {self.table_name} (id, at_id, created_at, updated_at, description, name, email, phone, slack_id, paypal_name, venmo_name) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (
                 self.id,
                 self.at_id,
@@ -253,6 +312,8 @@ class Person(Base, AirtableMixin):
                 self.email,
                 self.phone,
                 self.slack_id,
+                self.paypal_name,
+                self.venmo_name,
             ),
         )
 
@@ -282,6 +343,11 @@ class Person(Base, AirtableMixin):
 
     def transactions(self, cursor):
         yield from Transaction.collect_by_user_at_id(cursor, person_at_id=self.at_id)
+
+    def payments(self, cursor):
+        for t in self.transactions(cursor):
+            if t.debit is False:
+                yield t
 
     def ledger(self, cursor):
         total = 0

@@ -13,3 +13,7 @@ zipp
 svcs
 psycopg[binary]
 pydantic
+bs4
+openai
+boto3
+rich

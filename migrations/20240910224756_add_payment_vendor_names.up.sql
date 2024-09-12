@@ -1,0 +1,6 @@
+ALTER TABLE
+    ONLY PUBLIC.people
+ADD
+    column IF NOT EXISTS paypal_name CHARACTER VARYING,
+ADD
+    column IF NOT EXISTS venmo_name CHARACTER VARYING;
