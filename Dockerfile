@@ -11,7 +11,7 @@ RUN dpkg-reconfigure --frontend=noninteractive locales
 
 RUN apt-get install -y golang-go
 RUN go version
-RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.16.2
 
 RUN apt-get install -y cron
 COPY config/crontab /etc/cron.d/cron-force
