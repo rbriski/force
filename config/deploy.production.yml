@@ -1,4 +1,5 @@
 # Name of your application. Used to uniquely configure containers.
+# Name of your application. Used to uniquely configure containers.
 service: force
 
 # Name of the container image.
@@ -8,6 +9,7 @@ image: rbriski/force
 servers:
   - &host 143.244.178.63
 
+require_destination: true
 
 # Credentials for your image host.
 registry:
@@ -20,6 +22,15 @@ registry:
     - DOCKER_REGISTRY_TOKEN
 # Inject ENV variables into containers (secrets come from .env).
 # Remember to run `kamal env push` after making changes!
+
+builder:
+  arch: amd64
+
+proxy:
+  healthcheck:
+    path: /healthz
+    interval: 20
+
 env:
   clear:
     DB_HOST: *host
@@ -41,31 +52,7 @@ env:
     - SLACK_BOT_TOKEN
     - SLACK_APP_TOKEN
     - SLACK_SIGNING_SECRET
-# Use a different ssh user than root
-# ssh:
-#   user: app
 
-# Configure builder setup.
-builder:
-  arch: amd64
-# builder:
-#   args:
-#     RUBY_VERSION: 3.2.0
-#   secrets:
-#     - GITHUB_TOKEN
-#   remote:
-#     arch: amd64
-#     host: ssh://app@192.168.0.1
-
-proxy:
-  host: deanzaforce.club
-  healthcheck:
-    path: /healthz
-    interval: 20
-
-
-
-# Use accessory services (secrets come from .env).
 accessories:
   db:
     image: postgres:16-alpine
@@ -78,27 +65,3 @@ accessories:
         - POSTGRES_PASSWORD
     volumes:
       - data:/var/lib/postgresql/data
-
-
-
-# Bridge fingerprinted assets, like JS and CSS, between versions to avoid
-# hitting 404 on in-flight requests. Combines all files from new and old
-# version inside the asset_path.
-# asset_path: /rails/public/assets
-
-# Configure rolling deploys by setting a wait time between batches of restarts.
-# boot:
-#   limit: 10 # Can also specify as a percentage of total hosts, such as "25%"
-#   wait: 2
-
-# Configure the role used to determine the primary_host. This host takes
-# deploy locks, runs health checks during the deploy, and follow logs, etc.
-#
-# Caution: there's no support for role renaming yet, so be careful to cleanup
-#          the previous role on the deployed hosts.
-# primary_role: web
-
-# Controls if we abort when see a role with no hosts. Disabling this may be
-# useful for more complex deploy configurations.
-#
-# allow_empty_roles: false

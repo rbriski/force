@@ -21,6 +21,16 @@ registry:
     - DOCKER_REGISTRY_TOKEN
 # Inject ENV variables into containers (secrets come from .env).
 # Remember to run `kamal env push` after making changes!
+
+builder:
+  arch: amd64
+
+proxy:
+  healthcheck:
+    path: /healthz
+    interval: 20
+
+    
 env:
   clear:
     DB_HOST: *host
@@ -43,9 +53,8 @@ env:
     - SLACK_APP_TOKEN
     - SLACK_SIGNING_SECRET
 
-proxy:
-  host: deanzaforce.club
 
+    
 # Use a different ssh user than root
 # ssh:
 #   user: app
@@ -73,6 +82,8 @@ accessories:
         - POSTGRES_PASSWORD
     volumes:
       - data:/var/lib/postgresql/data
+
+      
 
 
 
