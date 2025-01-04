@@ -27,6 +27,8 @@ builder:
   arch: amd64
 
 proxy:
+  ssl: false
+  host: deanzaforce.club
   healthcheck:
     path: /healthz
     interval: 20
