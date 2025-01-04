@@ -45,6 +45,7 @@ env:
 
 proxy:
   host: deanzaforce.club
+
 # Use a different ssh user than root
 # ssh:
 #   user: app

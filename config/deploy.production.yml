@@ -59,6 +59,11 @@ builder:
 
 proxy:
   host: deanzaforce.club
+  healthcheck:
+    path: /healthz
+    interval: 20
+
+
 
 # Use accessory services (secrets come from .env).
 accessories:
