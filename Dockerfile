@@ -10,7 +10,9 @@ RUN rm /etc/locale.gen
 RUN dpkg-reconfigure --frontend=noninteractive locales
 
 RUN apt-get install -y software-properties-common
-RUN add-apt-repository ppa:longsleep/golang-backports
+RUN apt-get update && apt-get install -y curl gnupg
+RUN curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/golang-archive-keyring.gpg
+RUN echo "deb [signed-by=/usr/share/keyrings/golang-archive-keyring.gpg] https://dl.google.com/go/ stable main" | tee /etc/apt/sources.list.d/golang.list
 RUN apt-get update
 RUN apt-get install -y golang-go
 RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
