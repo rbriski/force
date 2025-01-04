@@ -9,10 +9,10 @@ RUN echo "locales locales/locales_to_be_generated multiselect en_US.UTF-8 UTF-8"
 RUN rm /etc/locale.gen
 RUN dpkg-reconfigure --frontend=noninteractive locales
 
-RUN apt-get install -y wget
-RUN wget https://go.dev/dl/go1.22.1.linux-amd64.tar.gz
-RUN rm -rf /usr/local/go && tar -C /usr/local -xzf go1.22.1.linux-amd64.tar.gz
-ENV PATH=$PATH:/usr/local/go/bin
+RUN apt-get install -y software-properties-common
+RUN add-apt-repository ppa:longsleep/golang-backports
+RUN apt-get update
+RUN apt-get install -y golang-go
 RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
 RUN apt-get install -y cron
