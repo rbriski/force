@@ -10,7 +10,7 @@ RUN rm /etc/locale.gen
 RUN dpkg-reconfigure --frontend=noninteractive locales
 
 RUN apt-get install -y golang-go
-RUN echo go version
+RUN go version
 RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
 RUN apt-get install -y cron
