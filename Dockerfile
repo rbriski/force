@@ -2,7 +2,7 @@ FROM python:3.12-bookworm
 
 WORKDIR /app
 
-RUN apt-get update
+RUN apt-get update -y
 RUN apt-get install -y locales
 RUN echo "locales locales/default_environment_locale select en_US.UTF-8" | debconf-set-selections
 RUN echo "locales locales/locales_to_be_generated multiselect en_US.UTF-8 UTF-8" | debconf-set-selections
