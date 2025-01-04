@@ -42,6 +42,9 @@ env:
     - SLACK_BOT_TOKEN
     - SLACK_APP_TOKEN
     - SLACK_SIGNING_SECRET
+
+proxy:
+  host: deanzaforce.club
 # Use a different ssh user than root
 # ssh:
 #   user: app
@@ -70,8 +73,7 @@ accessories:
     volumes:
       - data:/var/lib/postgresql/data
 
-proxy:
-  app_port: 3000
+
 
 # Bridge fingerprinted assets, like JS and CSS, between versions to avoid
 # hitting 404 on in-flight requests. Combines all files from new and old

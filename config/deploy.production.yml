@@ -58,7 +58,6 @@ builder:
 #     host: ssh://app@192.168.0.1
 
 proxy:
-  app_port: 3000
   host: deanzaforce.club
 
 # Use accessory services (secrets come from .env).
