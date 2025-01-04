@@ -8,10 +8,6 @@ image: rbriski/force
 servers:
   - &host 143.244.178.63
 
-labels:
-  traefik.http.routers.force-app.rule: "Host(`deanzaforce.club`)"
-  traefik.http.routers.force-app.tls: true
-  traefik.http.routers.force-app.tls.certresolver: letsencrypt
 
 # Credentials for your image host.
 registry:
@@ -50,6 +46,8 @@ env:
 #   user: app
 
 # Configure builder setup.
+builder:
+  arch: amd64
 # builder:
 #   args:
 #     RUBY_VERSION: 3.2.0
@@ -58,6 +56,10 @@ env:
 #   remote:
 #     arch: amd64
 #     host: ssh://app@192.168.0.1
+
+proxy:
+  app_port: 3000
+  host: deanzaforce.club
 
 # Use accessory services (secrets come from .env).
 accessories:
@@ -73,40 +75,8 @@ accessories:
     volumes:
       - data:/var/lib/postgresql/data
 
-# Configure custom arguments for Traefik
-traefik:
-  options:
-    publish:
-      - "443:443"
-    volume:
-      - /etc/traefik/acme/letsencrypt.json:/etc/traefik/acme/letsencrypt.json
-    memory: 500m
-  args:
-    accesslog: true
-    accesslog.format: json
-    entryPoints.web.address: ":80"
-    entryPoints.websecure.address: ":443"
-    entryPoints.web.http.redirections.entryPoint.to: websecure
-    entryPoints.web.http.redirections.entryPoint.scheme: https
-    entryPoints.web.http.redirections.entrypoint.permanent: true
-    certificatesResolvers.letsencrypt.acme.email: "rbriski@gmail.com"
-    certificatesResolvers.letsencrypt.acme.storage: "/etc/traefik/acme/letsencrypt.json"
-    certificatesResolvers.letsencrypt.acme.dnsChallenge: true
-    certificatesResolvers.letsencrypt.acme.dnsChallenge.provider: cloudflare
-    certificatesResolvers.letsencrypt.acme.dnsChallenge.resolvers: 1.1.1.1:53
-    certificatesResolvers.letsencrypt.acme.caServer: https://acme-v02.api.letsencrypt.org/directory
-  env:
-    secret:
-      - CF_DNS_API_TOKEN
-      - CF_API_EMAIL
 
-# Configure a custom healthcheck (default is /up on port 3000)
-healthcheck:
-  path: /healthz
-  port: 3000
-  max_attempts: 7
-  interval: 20s
-  cord: false
+
 # Bridge fingerprinted assets, like JS and CSS, between versions to avoid
 # hitting 404 on in-flight requests. Combines all files from new and old
 # version inside the asset_path.

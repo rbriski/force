@@ -23,6 +23,6 @@ RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
 COPY . /app
 
-EXPOSE 3000
+EXPOSE 80
 
-CMD ["gunicorn", "manage:app", "--bind", "0.0.0.0:3000", "--workers", "4"]
+CMD ["gunicorn", "manage:app", "--bind", "0.0.0.0:80", "--workers", "4"]
